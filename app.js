@@ -2,8 +2,7 @@ const i18n = {
   es: {
     hero_label: 'Tipo de cambio — Costa Rica',
     hero_title: 'El mejor cambio,<br>sin buscar.',
-    hero_sub: 'Comparamos los tipos de cambio de los principales bancos del país en tiempo real.',
-    bccr_label: 'Referencia oficial BCCR',
+
     buy: 'Compra',
     sell: 'Venta',
     updated: 'Actualizado',
@@ -15,14 +14,14 @@ const i18n = {
     calc_placeholder: 'Monto en dólares',
     calc_toggle_buy: 'Compro dólares',
     calc_toggle_sell: 'Vendo dólares',
-    calc_using: 'Usando el mejor banco disponible',
+
     chart_title: 'Historial del tipo de cambio',
     chart_7: '7 días',
     chart_15: '15 días',
     chart_30: '30 días',
     alert_label: 'Alertas de tipo de cambio',
     alert_title: 'Sé el primero en saber.',
-    alert_sub: 'Recibe un correo cuando el dólar alcance el precio que te interesa.',
+
     alert_placeholder: 'tu@correo.com',
     alert_btn: 'Activar alerta',
     alert_success: 'Listo. Te avisamos cuando llegue.',
@@ -37,8 +36,7 @@ const i18n = {
   en: {
     hero_label: 'Exchange Rate — Costa Rica',
     hero_title: 'The best rate,<br>without searching.',
-    hero_sub: "We compare exchange rates from the country's top banks in real time.",
-    bccr_label: 'Official BCCR Reference',
+
     buy: 'Buy',
     sell: 'Sell',
     updated: 'Updated',
@@ -50,14 +48,14 @@ const i18n = {
     calc_placeholder: 'Amount in dollars',
     calc_toggle_buy: "I'm buying dollars",
     calc_toggle_sell: "I'm selling dollars",
-    calc_using: 'Using the best available bank',
+
     chart_title: 'Exchange rate history',
     chart_7: '7 days',
     chart_15: '15 days',
     chart_30: '30 days',
     alert_label: 'Exchange rate alerts',
     alert_title: 'Be the first to know.',
-    alert_sub: 'Get an email when the dollar hits the price you care about.',
+
     alert_placeholder: 'your@email.com',
     alert_btn: 'Activate alert',
     alert_success: "Done. We'll notify you when it arrives.",
