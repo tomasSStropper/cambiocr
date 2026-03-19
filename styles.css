@@ -90,11 +90,7 @@ body {
 .hero { padding-top: 160px; }
 .hero__title { font-size: 48px; line-height: 1; letter-spacing: -2px; font-weight: 800; margin: 16px 0; }
 .hero__subtitle { color: var(--text-muted); max-width: 760px; margin: 0; }
-.hero__subtitle,
-.alerts__subtitle,
-.calculator__result-label {
-  letter-spacing: -0.1px;
-}
+
 
 .section-label {
   display: inline-flex;
@@ -157,25 +153,7 @@ body {
   font-size: 11px;
 }
 .comparator__footnote { color: var(--text-muted); font-size: 13px; margin-top: 12px; }
-.reference-strip {
-  margin-top: 14px;
-  margin-bottom: 18px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: 8px;
-  padding: 12px 14px;
-}
-.reference-strip__title {
-  margin: 0;
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 14px;
-}
-.reference-strip__meta {
-  margin: 4px 0 0;
-  color: var(--text-muted);
-  font-size: 13px;
-}
+ main
 
 .calculator__layout {
   border: 1px solid var(--border);
