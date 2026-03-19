@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CambioYa — Comparador de tipo de cambio en Costa Rica</title>
+    <meta
+      name="description"
+      content="Comparador en tiempo real del tipo de cambio del dólar en Costa Rica."
+    />
+    <meta property="og:title" content="CambioYa — Tipo de cambio en Costa Rica" />
+    <meta
+      property="og:description"
+      content="Compara compra y venta del dólar entre bancos de Costa Rica en tiempo real."
+    />
+    <meta property="og:image" content="https://placehold.co/1200x630/080808/EDEDED?text=CambioYa" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;800&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <div id="errorBanner" class="app__error-banner" hidden>
+      <span data-i18n="error_banner">Los datos pueden no estar actualizados.</span>
+    </div>
+
+    <header class="nav">
+      <div class="nav__inner container">
+        <div class="nav__logo">CambioYa</div>
+        <div class="nav__actions">
+          <button id="langToggle" class="button button--outline button--small" type="button">ES / EN</button>
+          <button id="refreshBtn" class="button button--outline button--small" type="button" data-i18n="refresh">
+            Actualizar
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="hero section">
+        <div class="section-label">
+          <span class="section-label__line"></span>
+          <span data-i18n="hero_label">Tipo de cambio — Costa Rica</span>
+        </div>
+        <h1 class="hero__title" data-i18n="hero_title">El mejor cambio,<br />sin buscar.</h1>
+        <p class="hero__subtitle" data-i18n="hero_sub">
+          Monitoreo claro y actualizado de compra y venta USD/CRC para decidir mejor en segundos.
+        </p>
+
+        <div class="hero__metrics">
+          <div class="hero__metric">
+            <div class="hero__metric-label">BCCR <span data-i18n="buy">Compra</span></div>
+            <div class="hero__metric-value mono" id="heroBccrBuy">₡510.50</div>
+          </div>
+          <div class="hero__metric">
+            <div class="hero__metric-label">BCCR <span data-i18n="sell">Venta</span></div>
+            <div class="hero__metric-value mono" id="heroBccrSell">₡520.30</div>
+          </div>
+        </div>
+
+        <p class="hero__source" id="heroUpdatedLine">
+          Fuente: Banco Central de Costa Rica — actualizado hoy 10:30 AM
+        </p>
+      </section>
+
+      <section class="section comparator">
+        <div class="section-label">
+          <span class="section-label__line"></span>
+          <span data-i18n="bccr_label">Referencia BCCR (base de comparación)</span>
+        </div>
+        <div class="reference-strip">
+          <p class="reference-strip__title" data-i18n="bccr_strip_title">Compra/Venta oficial BCCR</p>
+          <p class="reference-strip__meta" data-i18n="bccr_strip_meta">
+            Usamos esta referencia para calcular la diferencia de cada banco en la tabla.
+          </p>
+        </div>
+
+        <div id="tableSkeleton" class="skeleton-table">
+          <div class="skeleton-table__row"></div>
+          <div class="skeleton-table__row"></div>
+          <div class="skeleton-table__row"></div>
+          <div class="skeleton-table__row"></div>
+        </div>
+
+        <div class="table-wrap" id="tableWrap" hidden>
+          <table class="table" id="ratesTable">
+            <thead>
+              <tr>
+                <th>Banco</th>
+                <th data-i18n="buy">Compra</th>
+                <th data-i18n="sell">Venta</th>
+                <th data-i18n="diff_vs_bccr">vs referencia BCCR</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="ratesTableBody"></tbody>
+          </table>
+        </div>
+
+        <p class="comparator__footnote">Datos obtenidos directamente de cada entidad</p>
+      </section>
+
+      <section class="section calculator" id="calculatorSection">
+        <div class="section-label">
+          <span class="section-label__line"></span>
+          <span data-i18n="calc_title">Calculadora</span>
+        </div>
+        <div class="calculator__layout">
+          <div class="calculator__controls">
+            <label class="label" data-i18n="calc_label">¿Cuánto recibes?</label>
+            <input id="amountInput" class="input" type="number" min="0" step="0.01" data-i18n-placeholder="calc_placeholder" placeholder="Monto en dólares" />
+            <div class="toggle" role="group" aria-label="Tipo de operación">
+              <button id="modeBuy" class="toggle__btn toggle__btn--active" type="button" data-i18n="calc_toggle_buy">Compro dólares</button>
+              <button id="modeSell" class="toggle__btn" type="button" data-i18n="calc_toggle_sell">Vendo dólares</button>
+            </div>
+            <label class="label" for="bankSelect">Banco</label>
+            <select id="bankSelect" class="select"></select>
+          </div>
+          <div class="calculator__result">
+            <p class="calculator__result-label" data-i18n="calc_using">Resultado usando la tasa seleccionada</p>
+            <div class="calculator__result-value mono" id="calcResult">₡0.00</div>
+            <p class="calculator__result-bank" id="calcBank">—</p>
+            <p class="calculator__result-rate" id="calcRate">—</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section history">
+        <div class="section-label">
+          <span class="section-label__line"></span>
+          <span data-i18n="chart_title">Historial del tipo de cambio</span>
+        </div>
+        <div class="history__ranges" role="group">
+          <button class="range-btn range-btn--active" data-range="7" data-i18n="chart_7">7 días</button>
+          <button class="range-btn" data-range="15" data-i18n="chart_15">15 días</button>
+          <button class="range-btn" data-range="30" data-i18n="chart_30">30 días</button>
+        </div>
+        <div class="history__canvas-wrap">
+          <canvas id="historyChart"></canvas>
+        </div>
+      </section>
+
+      <section class="section alerts" id="alertsSection">
+        <div class="section-label section-label--center">
+          <span class="section-label__line"></span>
+          <span data-i18n="alert_label">Alertas de tipo de cambio</span>
+        </div>
+        <h2 class="alerts__title" data-i18n="alert_title">Sé el primero en saber.</h2>
+        <p class="alerts__subtitle" data-i18n="alert_sub">
+          Activa una alerta y recibe confirmación por correo cuando el precio objetivo se cumpla.
+        </p>
+
+        <form class="alerts__form" id="alertForm">
+          <input class="input" id="alertEmail" type="email" required data-i18n-placeholder="alert_placeholder" placeholder="tu@correo.com" />
+          <button id="customizeBtn" class="button button--ghost" type="button">Personalizar alerta</button>
+          <input class="input alerts__threshold" id="alertThreshold" type="number" min="0" step="0.01" placeholder="Umbral opcional" hidden />
+          <button class="button button--primary" id="alertSubmit" type="submit" data-i18n="alert_btn">Activar alerta</button>
+        </form>
+        <div class="alerts__message" id="alertMessage" hidden></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container footer__inner">
+        <p data-i18n="footer_copy">CambioYa 2026</p>
+        <p data-i18n="footer_disclaimer">
+          Los tipos de cambio son referenciales. CambioYa no es una entidad financiera.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
