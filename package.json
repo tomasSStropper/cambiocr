@@ -1,0 +1,12 @@
+{
+  "name": "cambioya",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Comparador de tipo de cambio del dólar en Costa Rica",
+  "scripts": {
+    "check": "node --check app.js && node --check api/rates.js && node --check api/history.js && node --check api/alert.js"
+  },
+  "dependencies": {
+    "nodemailer": "^6.10.1"
+  }
+}
