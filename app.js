@@ -2,10 +2,7 @@ const i18n = {
   es: {
     hero_label: 'Tipo de cambio — Costa Rica',
     hero_title: 'El mejor cambio,<br>sin buscar.',
-    hero_sub: 'Monitoreo claro y actualizado de compra y venta USD/CRC para decidir mejor en segundos.',
-    bccr_label: 'Referencia BCCR (base de comparación)',
-    bccr_strip_title: 'Compra/Venta oficial BCCR',
-    bccr_strip_meta: 'Usamos esta referencia para calcular la diferencia de cada banco en la tabla.',
+
     buy: 'Compra',
     sell: 'Venta',
     updated: 'Actualizado',
@@ -17,14 +14,14 @@ const i18n = {
     calc_placeholder: 'Monto en dólares',
     calc_toggle_buy: 'Compro dólares',
     calc_toggle_sell: 'Vendo dólares',
-    calc_using: 'Resultado usando la tasa seleccionada',
+
     chart_title: 'Historial del tipo de cambio',
     chart_7: '7 días',
     chart_15: '15 días',
     chart_30: '30 días',
     alert_label: 'Alertas de tipo de cambio',
     alert_title: 'Sé el primero en saber.',
-    alert_sub: 'Activa una alerta y recibe confirmación por correo cuando el precio objetivo se cumpla.',
+
     alert_placeholder: 'tu@correo.com',
     alert_btn: 'Activar alerta',
     alert_success: 'Listo. Te avisamos cuando llegue.',
@@ -39,10 +36,7 @@ const i18n = {
   en: {
     hero_label: 'Exchange Rate — Costa Rica',
     hero_title: 'The best rate,<br>without searching.',
-    hero_sub: 'Clear, up-to-date USD/CRC buy and sell monitoring so you can decide in seconds.',
-    bccr_label: 'BCCR Reference (comparison baseline)',
-    bccr_strip_title: 'Official BCCR Buy/Sell',
-    bccr_strip_meta: "We use this baseline to calculate each bank's difference in the table.",
+
     buy: 'Buy',
     sell: 'Sell',
     updated: 'Updated',
@@ -54,14 +48,14 @@ const i18n = {
     calc_placeholder: 'Amount in dollars',
     calc_toggle_buy: "I'm buying dollars",
     calc_toggle_sell: "I'm selling dollars",
-    calc_using: 'Result using the selected rate',
+
     chart_title: 'Exchange rate history',
     chart_7: '7 days',
     chart_15: '15 days',
     chart_30: '30 days',
     alert_label: 'Exchange rate alerts',
     alert_title: 'Be the first to know.',
-    alert_sub: 'Set an alert and get an email confirmation when your target rate is reached.',
+
     alert_placeholder: 'your@email.com',
     alert_btn: 'Activate alert',
     alert_success: "Done. We'll notify you when it arrives.",
