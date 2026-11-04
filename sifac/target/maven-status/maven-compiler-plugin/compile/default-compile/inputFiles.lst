@@ -4,6 +4,7 @@
 /home/user/cambiocr/sifac/src/main/java/sifac/comun/entidades/Moneda.java
 /home/user/cambiocr/sifac/src/main/java/sifac/comun/entidades/TipoCambio.java
 /home/user/cambiocr/sifac/src/main/java/sifac/servidor/datos/RepositorioTipoCambio.java
+/home/user/cambiocr/sifac/src/main/java/sifac/servidor/datos/TipoCambioBCCR.java
 /home/user/cambiocr/sifac/src/main/java/sifac/servidor/datos/TipoCambioEnMemoria.java
 /home/user/cambiocr/sifac/src/main/java/sifac/servidor/logica/ServicioFacturacion.java
 /home/user/cambiocr/sifac/src/main/java/sifac/servidor/logica/ServicioTipoCambio.java
