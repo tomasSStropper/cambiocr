@@ -10,6 +10,7 @@
   --surface-2: #eef1ef;
   --border: #dde3df;
   --border-strong: #c7cfca;
+  --control-border: #858f8a; /* 3:1 minimo para bordes de controles (WCAG 1.4.11) */
   --text: #121615;
   --muted: #56605c;
   --accent: #0f7a55;
@@ -36,6 +37,7 @@
     --surface-2: #181c1a;
     --border: #232a26;
     --border-strong: #313a35;
+    --control-border: #66716c;
     --text: #e8ece9;
     --muted: #97a29c;
     --accent: #3ccf91;
@@ -54,6 +56,7 @@
   --surface-2: #181c1a;
   --border: #232a26;
   --border-strong: #313a35;
+  --control-border: #66716c;
   --text: #e8ece9;
   --muted: #97a29c;
   --accent: #3ccf91;
@@ -74,6 +77,18 @@
 /* El atributo hidden siempre gana, aunque la clase defina display */
 [hidden] {
   display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 html {
@@ -215,9 +230,7 @@ a {
 .icon-btn:active {
   transform: translateY(1px);
 }
-.icon-btn.is-spinning i {
-  animation: spin 0.8s linear infinite;
-}
+
 
 /* ---------- Botones ---------- */
 .btn {
@@ -258,9 +271,15 @@ a {
   padding: 0 14px;
   font-size: 14px;
 }
-.btn:disabled {
-  opacity: 0.6;
+.btn:disabled,
+.btn[aria-busy='true'],
+.icon-btn[aria-busy='true'] {
+  opacity: 0.7;
   cursor: progress;
+}
+.btn[aria-busy='true'] i,
+.icon-btn[aria-busy='true'] i {
+  animation: spin 0.8s linear infinite;
 }
 
 /* ---------- Hero ---------- */
@@ -343,6 +362,8 @@ a {
   margin: 0;
 }
 .ref-rate dd:first-of-type {
+  font-family: var(--font);
+  font-variant-numeric: tabular-nums;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -431,9 +452,6 @@ a {
   align-content: start;
 }
 
-.calc__controls .section__title {
-  margin-bottom: 0;
-}
 
 .calc__result {
   padding: 32px;
@@ -451,12 +469,18 @@ a {
 
 .calc__result-value {
   margin: 6px 0 0;
+  font-variant-numeric: tabular-nums;
   font-size: clamp(2.2rem, 5vw, 3.4rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.1;
   word-break: break-word;
   color: var(--text);
+}
+.calc__result-value.is-empty {
+  color: var(--muted);
+  font-size: 1.5rem;
+  letter-spacing: 0;
 }
 
 .calc__rule {
@@ -493,7 +517,8 @@ a {
 .segmented__btn[aria-checked='true'] {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--control-border), 0 1px 2px rgb(0 0 0 / 0.12);
 }
 .segmented--small .segmented__btn {
   padding: 6px 12px;
@@ -528,7 +553,7 @@ a {
   height: 48px;
   padding: 0 14px;
   border-radius: var(--radius-control);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--control-border);
   background: var(--surface);
   color: var(--text);
   font: 400 16px var(--font);
@@ -619,6 +644,9 @@ select.field__input {
   text-align: right;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+.table th.num {
+  font-family: var(--font);
 }
 
 .table__entity {
@@ -750,7 +778,10 @@ select.field__input {
 }
 .alerts__message {
   grid-column: 1 / -1;
-  min-height: 20px;
+  min-height: 0;
+}
+.alerts__message:empty {
+  margin-top: -12px;
 }
 .alerts__message.is-ok {
   color: var(--accent-strong);
@@ -820,7 +851,8 @@ select.field__input {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .skeleton,
-  .icon-btn.is-spinning i {
+  .btn[aria-busy='true'] i,
+  .icon-btn[aria-busy='true'] i {
     animation: none;
   }
 }

@@ -39,7 +39,7 @@
 
     <header class="nav">
       <div class="nav__inner container">
-        <a class="brand" href="#" aria-label="CambioYa, inicio">
+        <a class="brand" href="#" data-i18n-label="brand_label" aria-label="CambioYa, inicio">
           <span class="brand__mark" aria-hidden="true">₡</span>
           <span class="brand__name">CambioYa</span>
         </a>
@@ -49,7 +49,7 @@
           <a href="#historial" data-i18n="nav_history">Historial</a>
         </nav>
         <div class="nav__actions">
-          <button id="langToggle" class="icon-btn icon-btn--text" type="button" aria-label="Cambiar idioma">EN</button>
+          <button id="langToggle" class="icon-btn icon-btn--text" type="button" lang="en" aria-label="EN, ver en inglés">EN</button>
           <button id="themeToggle" class="icon-btn" type="button" aria-label="Cambiar tema">
             <i class="ph ph-moon" aria-hidden="true"></i>
           </button>
@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <article class="ref-card reveal" aria-labelledby="refTitle" aria-live="polite">
+        <article class="ref-card reveal" aria-labelledby="refTitle">
           <header class="ref-card__head">
             <h2 id="refTitle" class="ref-card__title" data-i18n="ref_title">Referencia BCCR</h2>
             <span class="ref-card__date mono" id="refDate">&nbsp;</span>
@@ -99,22 +99,22 @@
             </p>
           </div>
 
-          <div class="ref-card__error" id="refError" hidden>
+          <div class="ref-card__error" id="refError" role="alert" hidden>
             <i class="ph ph-cloud-slash" aria-hidden="true"></i>
             <p data-i18n="ref_error">No pudimos conectar con el Banco Central. Intenta de nuevo en unos minutos.</p>
-            <button class="btn btn--ghost btn--small" type="button" id="refRetry" data-i18n="retry">Reintentar</button>
+            <button class="btn btn--ghost btn--small" type="button" id="refRetry"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i><span data-i18n="retry">Reintentar</span></button>
           </div>
         </article>
       </section>
 
       <section class="section container calc" id="calculadora" aria-labelledby="calcTitle">
+        <h2 id="calcTitle" class="section__title" data-i18n="calc_title">Calculadora</h2>
         <div class="calc__panel">
           <div class="calc__controls">
-            <h2 id="calcTitle" class="section__title" data-i18n="calc_title">Calculadora</h2>
 
-            <div class="segmented" role="radiogroup" aria-label="Operación">
-              <button class="segmented__btn" type="button" role="radio" aria-checked="true" data-mode="buy" data-i18n="calc_buy">Compro dólares</button>
-              <button class="segmented__btn" type="button" role="radio" aria-checked="false" data-mode="sell" data-i18n="calc_sell">Vendo dólares</button>
+            <div class="segmented" role="radiogroup" aria-label="Operación" data-i18n-label="op_label">
+              <button class="segmented__btn" type="button" role="radio" aria-checked="true" tabindex="0" data-mode="buy" data-i18n="calc_buy">Compro dólares</button>
+              <button class="segmented__btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-mode="sell" data-i18n="calc_sell">Vendo dólares</button>
             </div>
 
             <div class="field">
@@ -123,7 +123,7 @@
                 <span class="field__prefix mono" aria-hidden="true">$</span>
                 <input id="amountInput" class="field__input mono" type="text" inputmode="decimal" autocomplete="off" value="100" aria-describedby="amountHelp" />
               </div>
-              <p class="field__help" id="amountHelp" data-i18n="calc_help">Puedes usar punto o coma para los decimales.</p>
+              <p class="field__help" id="amountHelp" data-i18n="calc_help">Usa coma o punto para los decimales, por ejemplo 1.250,50.</p>
             </div>
 
             <div class="field">
@@ -132,10 +132,11 @@
             </div>
           </div>
 
-          <div class="calc__result" aria-live="polite">
+          <div class="calc__result">
             <p class="calc__result-label" id="calcLabel" data-i18n="calc_you_pay">Pagas</p>
-            <p class="calc__result-value mono" id="calcResult">₡0,00</p>
+            <p class="calc__result-value" id="calcResult">₡0,00</p>
             <p class="calc__rule" id="calcRule"></p>
+            <p class="sr-only" id="calcAnuncio" aria-live="polite" aria-atomic="true"></p>
           </div>
         </div>
       </section>
@@ -144,7 +145,7 @@
         <h2 id="compareTitle" class="section__title" data-i18n="compare_title">Comparador de entidades</h2>
         <p class="notice" role="note">
           <i class="ph ph-info" aria-hidden="true"></i>
-          <span data-i18n="demo_notice">Los montos de los bancos son de ejemplo mientras conectamos cada entidad. Solo la referencia del BCCR es real.</span>
+          <span data-i18n="demo_notice">Estamos conectando cada banco. Por ahora solo publicamos la referencia oficial del BCCR: preferimos no mostrar montos que no podemos verificar.</span>
         </p>
 
         <div class="table-wrap">
@@ -169,16 +170,16 @@
       <section class="section container" id="historial" aria-labelledby="historyTitle">
         <div class="history__head">
           <h2 id="historyTitle" class="section__title" data-i18n="chart_title">Historial del BCCR</h2>
-          <div class="segmented segmented--small" role="radiogroup" aria-label="Rango">
-            <button class="segmented__btn" type="button" role="radio" aria-checked="true" data-range="7" data-i18n="chart_7">7 días</button>
-            <button class="segmented__btn" type="button" role="radio" aria-checked="false" data-range="15" data-i18n="chart_15">15 días</button>
-            <button class="segmented__btn" type="button" role="radio" aria-checked="false" data-range="30" data-i18n="chart_30">30 días</button>
+          <div class="segmented segmented--small" role="radiogroup" aria-label="Rango" data-i18n-label="range_label">
+            <button class="segmented__btn" type="button" role="radio" aria-checked="true" tabindex="0" data-range="7" data-i18n="chart_7">7 días</button>
+            <button class="segmented__btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-range="15" data-i18n="chart_15">15 días</button>
+            <button class="segmented__btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-range="30" data-i18n="chart_30">30 días</button>
           </div>
         </div>
 
         <div class="history__grid">
           <div class="history__chart" id="historyChartWrap" data-state="loading">
-            <canvas id="historyChart" role="img" aria-label="Gráfico del tipo de cambio de compra y venta"></canvas>
+            <canvas id="historyChart" role="img" data-i18n-label="chart_label" aria-label="Gráfico del tipo de cambio de compra y venta"></canvas>
             <p class="history__empty" id="historyEmpty" hidden data-i18n="history_error">El historial no está disponible en este momento.</p>
           </div>
           <dl class="history__stats" id="historyStats">
@@ -209,7 +210,7 @@
 
     <footer class="footer">
       <div class="container footer__inner">
-        <p class="footer__brand">CambioYa 2026</p>
+        <p class="footer__brand">© 2026 CambioYa</p>
         <p data-i18n="footer_disclaimer">Los tipos de cambio son referenciales. CambioYa no es una entidad financiera.</p>
         <p>
           <span data-i18n="footer_source">Fuente oficial:</span>

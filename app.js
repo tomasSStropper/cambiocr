@@ -22,18 +22,19 @@ const TEXTOS = {
     buy: 'Compra',
     sell: 'Venta',
     spread: 'Diferencial',
-    vs_prev: 'vs anterior',
+    vs_prev: 'frente a ayer',
     calc_title: 'Calculadora',
     calc_buy: 'Compro dólares',
     calc_sell: 'Vendo dólares',
     calc_label: 'Monto en dólares',
-    calc_help: 'Puedes usar punto o coma para los decimales.',
+    calc_help: 'Usa coma o punto para los decimales, por ejemplo 1.250,50.',
     calc_invalid: 'Escribe un monto válido, por ejemplo 120,50.',
+    calc_none: 'Sin datos',
     calc_entity: 'Entidad',
     calc_you_pay: 'Pagas',
     calc_you_get: 'Recibes',
-    calc_rule_buy: 'Usa la tasa de venta ({tasa}): la entidad te vende los dólares.',
-    calc_rule_sell: 'Usa la tasa de compra ({tasa}): la entidad te compra los dólares.',
+    calc_rule_buy: 'Calculado con el tipo de venta ({tasa}), porque la entidad te vende los dólares.',
+    calc_rule_sell: 'Calculado con el tipo de compra ({tasa}), porque la entidad te compra los dólares.',
     calc_no_data: 'La referencia del BCCR no está disponible en este momento.',
     bccr_option: 'BCCR (referencia oficial)',
     compare_title: 'Comparador de entidades',
@@ -43,6 +44,8 @@ const TEXTOS = {
     tag_official: 'Oficial',
     tag_pending: 'Pendiente',
     tag_unavailable: 'No disponible',
+    no_data: 'Sin dato',
+    table_error: 'No pudimos cargar las entidades. Intenta de nuevo.',
     chart_title: 'Historial del BCCR',
     chart_7: '7 días',
     chart_15: '15 días',
@@ -61,7 +64,11 @@ const TEXTOS = {
     footer_disclaimer: 'Los tipos de cambio son referenciales. CambioYa no es una entidad financiera.',
     footer_source: 'Fuente oficial:',
     theme: 'Cambiar tema',
-    lang: 'Cambiar idioma',
+    lang: 'EN, ver en inglés',
+    brand_label: 'CambioYa, inicio',
+    op_label: 'Operación',
+    range_label: 'Rango del historial',
+    chart_label: 'Gráfico del tipo de cambio de compra y venta del BCCR',
     refresh: 'Actualizar datos'
   },
   en: {
@@ -79,18 +86,19 @@ const TEXTOS = {
     buy: 'Buy',
     sell: 'Sell',
     spread: 'Spread',
-    vs_prev: 'vs previous',
+    vs_prev: 'vs yesterday',
     calc_title: 'Calculator',
     calc_buy: "I'm buying dollars",
     calc_sell: "I'm selling dollars",
     calc_label: 'Amount in dollars',
-    calc_help: 'You can use a dot or a comma for decimals.',
+    calc_help: 'Use a dot or a comma for decimals, for example 1,250.50.',
     calc_invalid: 'Enter a valid amount, for example 120.50.',
+    calc_none: 'No data',
     calc_entity: 'Institution',
     calc_you_pay: 'You pay',
     calc_you_get: 'You get',
-    calc_rule_buy: 'Uses the sell rate ({tasa}): the institution sells you the dollars.',
-    calc_rule_sell: 'Uses the buy rate ({tasa}): the institution buys the dollars from you.',
+    calc_rule_buy: 'Calculated with the sell rate ({tasa}), because the institution sells you the dollars.',
+    calc_rule_sell: 'Calculated with the buy rate ({tasa}), because the institution buys the dollars from you.',
     calc_no_data: 'The BCCR reference is not available right now.',
     bccr_option: 'BCCR (official reference)',
     compare_title: 'Compare institutions',
@@ -100,6 +108,8 @@ const TEXTOS = {
     tag_official: 'Official',
     tag_pending: 'Pending',
     tag_unavailable: 'Unavailable',
+    no_data: 'No data',
+    table_error: 'We could not load the institutions. Please try again.',
     chart_title: 'BCCR history',
     chart_7: '7 days',
     chart_15: '15 days',
@@ -118,7 +128,11 @@ const TEXTOS = {
     footer_disclaimer: 'Exchange rates are for reference only. CambioYa is not a financial institution.',
     footer_source: 'Official source:',
     theme: 'Toggle theme',
-    lang: 'Change language',
+    lang: 'ES, ver en español',
+    brand_label: 'CambioYa, home',
+    op_label: 'Operation',
+    range_label: 'History range',
+    chart_label: 'Chart of the BCCR buy and sell exchange rate',
     refresh: 'Refresh data'
   }
 };
@@ -131,7 +145,9 @@ const estado = {
   bccr: null, // { buy, sell, date } o null si no hay dato
   entidades: [], // respuesta de /api/rates.rates
   historial: [], // [{ date, buy, sell }]
-  grafico: null
+  grafico: null,
+  pedidoHistorial: 0, // para descartar respuestas viejas si el usuario cambia de rango rapido
+  ocupado: false
 };
 
 const t = (clave) => TEXTOS[estado.idioma][clave] ?? clave;
@@ -171,11 +187,15 @@ function convertir(usd, tasa) {
   return Math.round(usd * tasa * 100) / 100;
 }
 
+// Acepta formatos de Costa Rica y de EE. UU.: 1.000 | 1,000 | 1.250,50 | 1,250.50 | 120,5.
+// El ultimo separador es decimal solo si lo siguen 1 o 2 digitos; los demas son de miles.
 function leerMonto(texto) {
-  const limpio = String(texto).trim().replace(/\s/g, '').replace(',', '.');
-  if (limpio === '') return 0;
-  const n = Number(limpio);
-  return Number.isFinite(n) && n >= 0 ? n : null;
+  const s = String(texto).replace(/\s/g, '');
+  if (s === '') return 0;
+  if (!/^\d[\d.,]*$/.test(s) || /[.,]{2}/.test(s)) return null;
+  const [, entero, decimales] = s.match(/^(.*?)(?:[.,](\d{1,2}))?$/);
+  const n = Number(entero.replace(/[.,]/g, '') + (decimales ? '.' + decimales : ''));
+  return Number.isFinite(n) ? n : null;
 }
 
 // Entidades con datos reales para la calculadora: el BCCR primero.
@@ -221,6 +241,13 @@ function crear(tag, opciones = {}, hijos = []) {
   return el;
 }
 
+// Celda "-" que un lector de pantalla lee como "Sin dato" y no como "guion".
+function celdaSinDato(clase) {
+  const guion = crear('span', { text: '-' });
+  guion.setAttribute('aria-hidden', 'true');
+  return crear('td', { className: clase }, [guion, crear('span', { className: 'sr-only', text: t('no_data') })]);
+}
+
 function icono(nombre) {
   const i = document.createElement('i');
   i.className = `ph ph-${nombre}`;
@@ -233,7 +260,12 @@ function renderTextos() {
   document.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.dataset.i18n);
   });
-  $('langToggle').textContent = estado.idioma === 'es' ? 'EN' : 'ES';
+  document.querySelectorAll('[data-i18n-label]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.dataset.i18nLabel));
+  });
+  const otro = estado.idioma === 'es' ? 'en' : 'es';
+  $('langToggle').textContent = otro.toUpperCase();
+  $('langToggle').setAttribute('lang', otro);
   $('langToggle').setAttribute('aria-label', t('lang'));
   $('themeToggle').setAttribute('aria-label', t('theme'));
   $('refreshBtn').setAttribute('aria-label', t('refresh'));
@@ -312,6 +344,14 @@ function renderTabla() {
   const filas = [];
   if (estado.bccr) {
     filas.push({ nombre: 'BCCR', buy: estado.bccr.buy, sell: estado.bccr.sell, tag: 'official' });
+  } else if (estado.entidades.length) {
+    filas.push({ nombre: 'BCCR', tag: 'unavailable' });
+  }
+  if (!filas.length && !estado.entidades.length) {
+    const td = crear('td', { className: 'table__muted', text: t('table_error') });
+    td.colSpan = 4;
+    cuerpo.append(crear('tr', {}, [td]));
+    return;
   }
   for (const e of estado.entidades) {
     const tieneDatos = Number.isFinite(e.buy) && Number.isFinite(e.sell) && !e.pending && !e.error;
@@ -334,13 +374,16 @@ function renderTabla() {
 
     if (f.tag === 'pending' || f.tag === 'unavailable') {
       for (const clase of ['num table__muted', 'num table__muted', 'num table__muted col-vs']) {
-        tr.append(crear('td', { className: clase, text: '-' }));
+        tr.append(celdaSinDato(clase));
       }
     } else {
       tr.append(crear('td', { className: 'num', text: colones(f.buy) }));
       tr.append(crear('td', { className: `num${f.sell === mejorVenta ? ' table__best' : ''}`, text: colones(f.sell) }));
-      const vs = estado.bccr && f.nombre !== 'BCCR' ? conSigno(f.sell - estado.bccr.sell) : '-';
-      tr.append(crear('td', { className: 'num table__muted col-vs', text: vs }));
+      if (estado.bccr && f.nombre !== 'BCCR') {
+        tr.append(crear('td', { className: 'num table__muted col-vs', text: conSigno(f.sell - estado.bccr.sell) }));
+      } else {
+        tr.append(celdaSinDato('num table__muted col-vs'));
+      }
     }
     cuerpo.append(tr);
   }
@@ -359,7 +402,7 @@ function renderSelectorEntidad() {
 }
 
 function renderCalculadora() {
-  document.querySelectorAll('[data-mode]').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.mode === estado.modo)));
+  marcarRadios('[data-mode]', (b) => b.dataset.mode === estado.modo);
   $('calcLabel').textContent = t(estado.modo === 'buy' ? 'calc_you_pay' : 'calc_you_get');
 
   const input = $('amountInput');
@@ -370,15 +413,39 @@ function renderCalculadora() {
   ayuda.textContent = t(valido ? 'calc_help' : 'calc_invalid');
   ayuda.classList.toggle('is-error', !valido);
 
-  const entidad = entidadesConDatos().find((e) => e.id === $('bankSelect').value);
-  if (!entidad) {
-    $('calcResult').textContent = '-';
-    $('calcRule').textContent = t('calc_no_data');
+  const disponibles = entidadesConDatos();
+  $('bankSelect').disabled = !disponibles.length;
+  const entidad = disponibles.find((e) => e.id === $('bankSelect').value);
+  const resultado = $('calcResult');
+  if (!entidad || !valido) {
+    resultado.textContent = t('calc_none');
+    resultado.classList.add('is-empty');
+    $('calcRule').textContent = entidad ? '' : t('calc_no_data');
     return;
   }
   const tasa = tasaPara(estado.modo, entidad);
-  $('calcResult').textContent = valido ? colones(convertir(monto, tasa)) : '-';
+  resultado.textContent = colones(convertir(monto, tasa));
+  resultado.classList.remove('is-empty');
   $('calcRule').textContent = t(estado.modo === 'buy' ? 'calc_rule_buy' : 'calc_rule_sell').replace('{tasa}', colones(tasa));
+  anunciarResultado(`${$('calcLabel').textContent} ${resultado.textContent}`);
+}
+
+// El lector de pantalla escucha el resultado cuando el usuario deja de escribir, no en cada tecla.
+let temporizadorAnuncio;
+function anunciarResultado(texto) {
+  clearTimeout(temporizadorAnuncio);
+  temporizadorAnuncio = setTimeout(() => {
+    $('calcAnuncio').textContent = texto;
+  }, 700);
+}
+
+// Radios con tabindex "roving": solo el marcado entra en el orden de Tab.
+function marcarRadios(selector, esMarcado) {
+  document.querySelectorAll(selector).forEach((b) => {
+    const marcado = esMarcado(b);
+    b.setAttribute('aria-checked', String(marcado));
+    b.tabIndex = marcado ? 0 : -1;
+  });
 }
 
 function colorToken(nombre) {
@@ -394,15 +461,14 @@ function renderEstadisticas() {
   const ventas = puntos.map((p) => p.sell);
   $('statMin').textContent = colones(Math.min(...ventas));
   $('statMax').textContent = colones(Math.max(...ventas));
-  $('statChange').textContent = conSigno(ventas.at(-1) - ventas[0]);
+  const cambio = ventas.at(-1) - ventas[0];
+  $('statChange').textContent = (cambio > 0 ? '+' : cambio < 0 ? '-' : '') + colones(Math.abs(cambio));
 }
 
 function renderGrafico() {
   const wrap = $('historyChartWrap');
   const vacio = $('historyEmpty');
-  document
-    .querySelectorAll('[data-range]')
-    .forEach((b) => b.setAttribute('aria-checked', String(Number(b.dataset.range) === estado.rango)));
+  marcarRadios('[data-range]', (b) => Number(b.dataset.range) === estado.rango);
   renderEstadisticas();
 
   if (!estado.historial.length) {
@@ -446,7 +512,7 @@ function renderGrafico() {
       },
       scales: {
         x: { grid: { display: false }, ticks: { color: tenue, maxRotation: 0, autoSkip: true, maxTicksLimit: window.innerWidth < 640 ? 4 : 8, font: { family: fuente } } },
-        y: { grid: { color: borde }, border: { display: false }, ticks: { color: tenue, font: { family: fuente }, callback: (v) => colones(v) } }
+        y: { grid: { color: borde }, border: { display: false }, ticks: { color: tenue, maxTicksLimit: 5, font: { family: fuente }, callback: (v) => '₡' + new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(v) } }
       }
     }
   });
@@ -474,22 +540,33 @@ async function cargarTasas() {
 }
 
 async function cargarHistorial() {
+  const pedido = ++estado.pedidoHistorial;
+  let puntos = [];
   try {
     const datos = await api.historial(estado.rango);
-    estado.historial = Array.isArray(datos.points) ? datos.points : [];
+    puntos = Array.isArray(datos.points) ? datos.points : [];
   } catch {
-    estado.historial = [];
+    puntos = [];
   }
+  // Si mientras esperabamos se pidio otro rango, esta respuesta ya no sirve.
+  if (pedido !== estado.pedidoHistorial) return false;
+  estado.historial = puntos;
+  return true;
 }
 
+// No se usa "disabled": quitaria el foco del boton. Se marca aria-busy y se ignoran clics repetidos.
 async function actualizar() {
-  const boton = $('refreshBtn');
-  boton.classList.add('is-spinning');
-  boton.disabled = true;
-  await Promise.all([cargarTasas(), cargarHistorial()]);
-  renderTodo();
-  boton.classList.remove('is-spinning');
-  boton.disabled = false;
+  if (estado.ocupado) return;
+  estado.ocupado = true;
+  const botones = [$('refreshBtn'), $('refRetry')];
+  botones.forEach((b) => b.setAttribute('aria-busy', 'true'));
+  try {
+    await Promise.all([cargarTasas(), cargarHistorial()]);
+    renderTodo();
+  } finally {
+    botones.forEach((b) => b.removeAttribute('aria-busy'));
+    estado.ocupado = false;
+  }
 }
 
 function temaEfectivo() {
@@ -532,16 +609,34 @@ function enlazarEventos() {
       renderCalculadora();
     })
   );
+  // Patron de teclado de radiogroup: flechas mueven y seleccionan.
+  document.querySelectorAll('[role="radiogroup"]').forEach((grupo) =>
+    grupo.addEventListener('keydown', (e) => {
+      const radios = [...grupo.querySelectorAll('[role="radio"]')];
+      const paso = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+      const i = radios.indexOf(document.activeElement);
+      if (!paso || i < 0) return;
+      e.preventDefault();
+      const siguiente = radios[(i + paso + radios.length) % radios.length];
+      siguiente.focus();
+      siguiente.click();
+    })
+  );
+
   $('amountInput').addEventListener('input', renderCalculadora);
   $('bankSelect').addEventListener('change', renderCalculadora);
 
   document.querySelectorAll('[data-range]').forEach((b) =>
     b.addEventListener('click', async () => {
       estado.rango = Number(b.dataset.range);
-      $('historyChartWrap').dataset.state = 'loading';
-      await cargarHistorial();
+      const wrap = $('historyChartWrap');
+      wrap.dataset.state = 'loading';
+      wrap.setAttribute('aria-busy', 'true');
+      marcarRadios('[data-range]', (r) => Number(r.dataset.range) === estado.rango);
+      const vigente = await cargarHistorial();
+      if (!vigente) return;
+      wrap.removeAttribute('aria-busy');
       renderGrafico();
-      renderReferencia();
     })
   );
 
@@ -559,7 +654,8 @@ function enlazarEventos() {
       return;
     }
     input.setAttribute('aria-invalid', 'false');
-    boton.disabled = true;
+    if (boton.getAttribute('aria-busy') === 'true') return;
+    boton.setAttribute('aria-busy', 'true');
     try {
       await api.alerta(input.value.trim());
       mensaje.textContent = t('alert_ok');
@@ -569,7 +665,7 @@ function enlazarEventos() {
       mensaje.textContent = t('alert_error');
       mensaje.classList.add('is-error');
     } finally {
-      boton.disabled = false;
+      boton.removeAttribute('aria-busy');
     }
   });
 }
