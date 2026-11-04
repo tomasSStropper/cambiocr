@@ -39,9 +39,4 @@ public class LineaFactura {
     public double montoEnMonedaOriginal() {
         return cantidad * precioUnitario;
     }
-
-    @Override
-    public String toString() {
-        return cantidad + " x " + descripcion + " @ " + precioUnitario + " " + moneda;
-    }
 }

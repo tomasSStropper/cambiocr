@@ -18,18 +18,20 @@ También se abre directo en NetBeans / IntelliJ / VS Code como proyecto Maven. L
 ## Mapa de capas
 
 ```
-sifac.cliente.presentacion   MenuConsola              pide datos, muestra resultados
+sifac.cliente.presentacion   MenuConsola              pide datos, muestra resultados (valida la entrada)
           │ conoce solo ↓
-sifac.servidor.logica        ServicioTipoCambio       regla compra/venta, redondeo
-                             ServicioFacturacion      línea → colones, subtotal, IVA
+sifac.servidor.logica        ServicioTipoCambio       regla compra/venta, valida fechas
+                             ServicioFacturacion      arma la Factura con UN solo tipo de cambio + IVA
+                             Dinero                   redondeo a centimos (un solo lugar)
           │ conoce solo la INTERFAZ ↓
 sifac.servidor.datos         RepositorioTipoCambio    (interfaz / contrato)
-                             TipoCambioEnMemoria      implementación simulada
-                             TipoCambioBCCR           implementación real (fase 5, opcional)
+                             TipoCambioEnMemoria      implementacion simulada (la de la actividad)
+                             TipoCambioBCCR           API SDDE real del BCCR (Gson solo vive aqui)
+                             TipoCambioEnCache        decorador: recuerda lo que responde otro repositorio
 
-sifac.comun.entidades        TipoCambio, LineaFactura, Moneda   ← no importan nada de SIFAC
+sifac.comun.entidades        TipoCambio, LineaFactura, Moneda, Factura, LineaFacturada  <- no importan nada de SIFAC
 
-sifac.Aplicacion             ensambla todo: el ÚNICO lugar que hace new de una clase de datos
+sifac.Aplicacion             ensambla todo: el UNICO lugar que hace new de una clase de datos
 ```
 
 Compruebe la regla usted mismo:
@@ -51,5 +53,6 @@ Cada fase es un commit. Revíselos con `git log --oneline -- sifac` y `git show 
 | 3 | `ServicioTipoCambio` | `ServicioTipoCambioTest` (Verificación 3) |
 | 4 | `LineaFactura`, `Moneda`, `ServicioFacturacion`, `MenuConsola`, `Aplicacion` | `FacturaMixtaTest` |
 | 5 | `TipoCambioBCCR` + JSON de prueba en `src/test/resources/bccr` | `TipoCambioBCCRTest` |
+| Auditoria | `Factura`, `LineaFacturada`, `Dinero`, `TipoCambioEnCache` | `ServicioFacturacionTest`, `TipoCambioEnCacheTest` |
 
 > `TipoCambioBCCR` usa la API SDDE del BCCR (sitio nuevo): `Authorization: Bearer <token>`, indicadores 317/318. Los JSON de `src/test/resources/bccr` imitan esa respuesta; cuando tenga una real, guárdela ahí y úsela en la prueba.

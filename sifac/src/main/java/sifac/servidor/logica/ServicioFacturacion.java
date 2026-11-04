@@ -1,15 +1,20 @@
 package sifac.servidor.logica;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import sifac.comun.entidades.Factura;
 import sifac.comun.entidades.LineaFactura;
+import sifac.comun.entidades.LineaFacturada;
 import sifac.comun.entidades.Moneda;
+import sifac.comun.entidades.TipoCambio;
 
 /**
  * Reglas de facturacion: pasar cada linea a colones, sumar y aplicar el IVA.
  *
- * Usa ServicioTipoCambio para las lineas en dolares. No sabe de donde sale
- * el tipo de cambio: eso ya quedo escondido detras del otro servicio.
+ * Regla clave: una factura usa UN solo tipo de cambio, fijado al empezar a
+ * calcularla. Asi todas sus lineas y sus totales son coherentes entre si,
+ * aunque el BCCR publique un dato nuevo a mitad del proceso.
  */
 public class ServicioFacturacion {
 
@@ -25,47 +30,61 @@ public class ServicioFacturacion {
         this.tipoCambio = tipoCambio;
     }
 
-    /**
-     * Total de la linea en colones. Una linea en dolares es mercaderia que la
-     * ferreteria le paga al proveedor en dolares: se convierte "para pagar"
-     * (tasa de VENTA).
-     */
-    public double totalLineaEnColones(LineaFactura linea) {
-        if (linea.getCantidad() <= 0) {
-            throw new IllegalArgumentException("La cantidad debe ser mayor que cero");
+    /** Calcula la factura completa con un unico tipo de cambio. */
+    public Factura facturar(List<LineaFactura> lineas) {
+        if (lineas == null || lineas.isEmpty()) {
+            throw new IllegalArgumentException("La factura necesita al menos una linea");
         }
-        if (linea.getPrecioUnitario() < 0) {
-            throw new IllegalArgumentException("El precio no puede ser negativo");
+        for (LineaFactura linea : lineas) {
+            validar(linea);
         }
-        double monto = linea.montoEnMonedaOriginal();
-        if (linea.getMoneda() == Moneda.DOLARES) {
-            return tipoCambio.convertirAColonesParaPagar(monto);
+
+        // Se consulta el tipo de cambio UNA vez, y solo si hace falta.
+        boolean hayDolares = lineas.stream().anyMatch(l -> l.getMoneda() == Moneda.DOLARES);
+        TipoCambio tc = hayDolares ? tipoCambio.actual() : null;
+
+        List<LineaFacturada> calculadas = new ArrayList<>();
+        double subtotal = 0;
+        for (LineaFactura linea : lineas) {
+            double totalLinea = totalLineaEnColones(linea, tc);
+            calculadas.add(new LineaFacturada(linea, totalLinea));
+            subtotal += totalLinea;
         }
-        return redondear(monto);
+        subtotal = Dinero.redondear(subtotal);
+        double iva = iva(subtotal);
+        double total = Dinero.redondear(subtotal + iva);
+        return new Factura(calculadas, subtotal, PORCENTAJE_IVA, iva, total, tc);
     }
 
-    public double subtotal(List<LineaFactura> lineas) {
-        double suma = 0;
-        for (LineaFactura linea : lineas) {
-            suma += totalLineaEnColones(linea);
+    /**
+     * Una linea en dolares es mercaderia que la ferreteria le paga al proveedor
+     * en dolares: se convierte "para pagar" (tasa de VENTA).
+     */
+    private double totalLineaEnColones(LineaFactura linea, TipoCambio tc) {
+        double monto = linea.montoEnMonedaOriginal();
+        if (linea.getMoneda() == Moneda.DOLARES) {
+            return tipoCambio.convertirAColonesParaPagar(monto, tc);
         }
-        return redondear(suma);
+        return Dinero.redondear(monto);
     }
 
     public double iva(double subtotal) {
-        return redondear(subtotal * PORCENTAJE_IVA / 100.0);
-    }
-
-    public double total(List<LineaFactura> lineas) {
-        double subtotal = subtotal(lineas);
-        return redondear(subtotal + iva(subtotal));
+        return Dinero.redondear(subtotal * PORCENTAJE_IVA / 100.0);
     }
 
     public int getPorcentajeIva() {
         return PORCENTAJE_IVA;
     }
 
-    private static double redondear(double monto) {
-        return Math.round(monto * 100.0) / 100.0;
+    private static void validar(LineaFactura linea) {
+        if (linea.getCantidad() <= 0) {
+            throw new IllegalArgumentException("La cantidad debe ser mayor que cero");
+        }
+        if (linea.getPrecioUnitario() < 0) {
+            throw new IllegalArgumentException("El precio no puede ser negativo");
+        }
+        if (linea.getMoneda() == null) {
+            throw new IllegalArgumentException("La linea necesita una moneda");
+        }
     }
 }

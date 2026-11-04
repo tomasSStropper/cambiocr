@@ -1,10 +1,12 @@
 package sifac;
 
+import java.time.Duration;
 import java.util.Scanner;
 
 import sifac.cliente.presentacion.MenuConsola;
 import sifac.servidor.datos.RepositorioTipoCambio;
 import sifac.servidor.datos.TipoCambioBCCR;
+import sifac.servidor.datos.TipoCambioEnCache;
 import sifac.servidor.datos.TipoCambioEnMemoria;
 import sifac.servidor.logica.ServicioFacturacion;
 import sifac.servidor.logica.ServicioTipoCambio;
@@ -25,7 +27,7 @@ public class Aplicacion {
         RepositorioTipoCambio repo;
         try {
             repo = usarBccr
-                    ? new TipoCambioBCCR(System.getenv("BCCR_TOKEN"))
+                    ? new TipoCambioEnCache(new TipoCambioBCCR(System.getenv("BCCR_TOKEN")), Duration.ofMinutes(10))
                     : new TipoCambioEnMemoria();
         } catch (IllegalArgumentException e) {
             System.err.println("No se pudo iniciar: " + e.getMessage());

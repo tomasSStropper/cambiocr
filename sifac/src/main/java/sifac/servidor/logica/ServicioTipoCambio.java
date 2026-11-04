@@ -1,5 +1,8 @@
 package sifac.servidor.logica;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
 import sifac.comun.entidades.TipoCambio;
 import sifac.servidor.datos.RepositorioTipoCambio;
 
@@ -27,22 +30,27 @@ public class ServicioTipoCambio {
         this.repositorio = repositorio;
     }
 
-    /** Proveedor cotiza en dolares y hay que pagarle: tasa de VENTA. */
+    /** Proveedor cotiza en dolares y hay que pagarle: tasa de VENTA del dia mas reciente. */
     public double convertirAColonesParaPagar(double usd) {
-        validarMonto(usd);
-        return redondear(usd * actual().getVenta());
+        return convertirAColonesParaPagar(usd, actual());
+    }
+
+    /** Igual, pero con un tipo de cambio ya fijado (por ejemplo, el de una factura). */
+    public double convertirAColonesParaPagar(double usd, TipoCambio tc) {
+        Dinero.validarNoNegativo(usd);
+        return Dinero.redondear(usd * tc.getVenta());
     }
 
     /** Cliente paga con dolares y la ferreteria los recibe: tasa de COMPRA. */
     public double convertirAColonesParaRecibir(double usd) {
-        validarMonto(usd);
-        return redondear(usd * actual().getCompra());
+        Dinero.validarNoNegativo(usd);
+        return Dinero.redondear(usd * actual().getCompra());
     }
 
     /** Inverso de convertirAColonesParaPagar: divide entre la tasa de VENTA. */
     public double convertirADolaresParaPagar(double crc) {
-        validarMonto(crc);
-        return redondear(crc / actual().getVenta());
+        Dinero.validarNoNegativo(crc);
+        return Dinero.redondear(crc / actual().getVenta());
     }
 
     /**
@@ -51,6 +59,7 @@ public class ServicioTipoCambio {
      * la excepcion, aunque el repositorio solo haya devuelto null.
      */
     public TipoCambio delDia(String fecha) {
+        validarFecha(fecha);
         TipoCambio tc = repositorio.obtenerPorFecha(fecha);
         if (tc == null) {
             throw new IllegalArgumentException("No hay tipo de cambio para " + fecha);
@@ -60,7 +69,7 @@ public class ServicioTipoCambio {
 
     /** Colones de diferencia entre pagar y recibir, por cada 100 dolares. */
     public double diferencialPorCada100() {
-        return redondear(actual().diferencial() * 100);
+        return Dinero.redondear(actual().diferencial() * 100);
     }
 
     /** El tipo de cambio mas reciente disponible (el "del dia" para facturar). */
@@ -72,18 +81,15 @@ public class ServicioTipoCambio {
         return tc;
     }
 
-    private static void validarMonto(double monto) {
-        if (monto < 0) {
-            throw new IllegalArgumentException("El monto no puede ser negativo: " + monto);
+    /** Regla: una fecha valida es AAAA-MM-DD y existe en el calendario. */
+    private static void validarFecha(String fecha) {
+        try {
+            if (fecha == null || fecha.length() != 10) {
+                throw new DateTimeParseException("largo", String.valueOf(fecha), 0);
+            }
+            LocalDate.parse(fecha);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Fecha invalida: " + fecha + ". Use el formato AAAA-MM-DD");
         }
-    }
-
-    /**
-     * Redondea a 2 decimales (centimos). double no representa exacto 513.40,
-     * asi que 100 * 7.15 da 714.9999...; redondear es una regla del negocio
-     * (se cobra en centimos), por eso vive aqui y no en la presentacion.
-     */
-    private static double redondear(double monto) {
-        return Math.round(monto * 100.0) / 100.0;
     }
 }

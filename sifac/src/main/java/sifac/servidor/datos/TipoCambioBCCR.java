@@ -10,8 +10,13 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 
 import sifac.comun.entidades.TipoCambio;
 
@@ -32,11 +37,8 @@ public class TipoCambioBCCR implements RepositorioTipoCambio {
     /** Cuantos dias hacia atras buscar el mas reciente (fines de semana y feriados). */
     private static final int DIAS_HACIA_ATRAS = 10;
 
-    // Cada punto de la serie es un objeto plano { "fecha": "...", "valorDatoPorPeriodo": 513.4 }.
-    private static final Pattern OBJETO_PLANO = Pattern.compile("\\{[^{}]*\\}");
-    private static final Pattern FECHA = Pattern.compile("\"fecha\"\\s*:\\s*\"(\\d{4}-\\d{2}-\\d{2})");
-    private static final Pattern VALOR = Pattern.compile("\"valorDatoPorPeriodo\"\\s*:\\s*(-?[0-9.]+)");
-    private static final Pattern ESTADO_FALSO = Pattern.compile("\"estado\"\\s*:\\s*false");
+    /** Formato de fecha aceptado; cualquier otra cosa no se manda al BCCR. */
+    private static final Pattern FECHA_ISO = Pattern.compile("\\d{4}-\\d{2}-\\d{2}");
 
     private final String token;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
@@ -50,6 +52,9 @@ public class TipoCambioBCCR implements RepositorioTipoCambio {
 
     @Override
     public TipoCambio obtenerPorFecha(String fecha) {
+        if (fecha == null || !FECHA_ISO.matcher(fecha).matches()) {
+            return null; // nunca se arma una URL con texto arbitrario del usuario
+        }
         return masRecienteEntre(fecha, fecha);
     }
 
@@ -109,23 +114,47 @@ public class TipoCambioBCCR implements RepositorioTipoCambio {
         }
     }
 
-    /** Convierte el JSON de la API en fecha -> valor, ordenado por fecha. */
+    /**
+     * Convierte el JSON de la API en fecha -> valor, ordenado por fecha.
+     * Forma esperada: { estado, mensaje, datos: [ { series: [ { fecha, valorDatoPorPeriodo } ] } ] }
+     */
     static Map<String, Double> parsearSerie(String json) {
-        if (json == null) {
-            return new TreeMap<>();
-        }
-        if (ESTADO_FALSO.matcher(json).find()) {
-            throw new IllegalStateException("El BCCR respondio estado=false: " + json);
-        }
         Map<String, Double> valores = new TreeMap<>();
-        Matcher objeto = OBJETO_PLANO.matcher(json);
-        while (objeto.find()) {
-            Matcher f = FECHA.matcher(objeto.group());
-            Matcher v = VALOR.matcher(objeto.group());
-            if (f.find() && v.find()) {
-                valores.put(f.group(1), Double.parseDouble(v.group(1)));
+        if (json == null || json.isBlank()) {
+            return valores;
+        }
+        JsonObject raiz = leerObjeto(json);
+        if (raiz.has("estado") && !raiz.get("estado").getAsBoolean()) {
+            String mensaje = raiz.has("mensaje") ? raiz.get("mensaje").getAsString() : "consulta sin exito";
+            throw new IllegalStateException("El BCCR respondio: " + mensaje);
+        }
+        try {
+            for (JsonElement indicador : arreglo(raiz, "datos")) {
+                for (JsonElement punto : arreglo(indicador.getAsJsonObject(), "series")) {
+                    JsonObject p = punto.getAsJsonObject();
+                    JsonElement fecha = p.get("fecha");
+                    JsonElement valor = p.get("valorDatoPorPeriodo");
+                    if (fecha != null && !fecha.isJsonNull() && valor != null && !valor.isJsonNull()) {
+                        valores.put(fecha.getAsString().substring(0, 10), valor.getAsDouble());
+                    }
+                }
             }
+        } catch (RuntimeException e) { // tipos inesperados dentro del JSON
+            throw new IllegalStateException("Respuesta del BCCR con formato inesperado", e);
         }
         return valores;
+    }
+
+    private static JsonObject leerObjeto(String json) {
+        try {
+            return JsonParser.parseString(json).getAsJsonObject();
+        } catch (JsonParseException | IllegalStateException e) {
+            throw new IllegalStateException("Respuesta del BCCR con formato inesperado", e);
+        }
+    }
+
+    private static JsonArray arreglo(JsonObject objeto, String campo) {
+        JsonElement e = objeto.get(campo);
+        return e != null && e.isJsonArray() ? e.getAsJsonArray() : new JsonArray();
     }
 }

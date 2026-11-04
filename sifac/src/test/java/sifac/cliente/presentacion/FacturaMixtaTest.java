@@ -11,6 +11,7 @@ import java.util.Scanner;
 
 import org.junit.jupiter.api.Test;
 
+import sifac.comun.entidades.Factura;
 import sifac.comun.entidades.LineaFactura;
 import sifac.comun.entidades.Moneda;
 import sifac.servidor.datos.TipoCambioEnMemoria;
@@ -38,10 +39,7 @@ class FacturaMixtaTest {
         MenuConsola menu = new MenuConsola(tipoCambio, facturacion,
                 new Scanner(""), new PrintStream(buffer, true, StandardCharsets.UTF_8));
 
-        menu.imprimirFactura(List.of(
-                new LineaFactura("Tubo PVC 1/2", 10, 1000.00, Moneda.COLONES),
-                new LineaFactura("Taladro importado", 1, 120.00, Moneda.DOLARES),
-                new LineaFactura("Clavos 2 pulg", 5, 1200.00, Moneda.COLONES)));
+        menu.imprimirFactura(facturacion.facturar(lineasDePrueba()));
 
         assertEquals(ESPERADA, buffer.toString(StandardCharsets.UTF_8));
     }
@@ -64,13 +62,35 @@ class FacturaMixtaTest {
     }
 
     @Test
+    void elMenuVuelveAPreguntarCantidadYMonedaInvalidas() {
+        String teclado = String.join("\n",
+                "3",
+                "Taladro importado", "2,7", "0", "1", "X", "$", "120",
+                "",
+                "4") + "\n";
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        new MenuConsola(tipoCambio, facturacion, new Scanner(teclado),
+                new PrintStream(buffer, true, StandardCharsets.UTF_8)).iniciar();
+
+        String pantalla = buffer.toString(StandardCharsets.UTF_8);
+        assertTrue(pantalla.contains("La cantidad debe ser un numero entero mayor que cero."), pantalla);
+        assertTrue(pantalla.contains("Escriba C para colones o $ para dolares."), pantalla);
+        assertTrue(pantalla.contains("Taladro importado     1 x $   120.00  ->  C   61608.00"), pantalla);
+    }
+
+    @Test
     void totalesDeLaLogica() {
-        List<LineaFactura> lineas = List.of(
+        Factura factura = facturacion.facturar(lineasDePrueba());
+        assertEquals(77608.00, factura.getSubtotal(), 0.001);
+        assertEquals(10089.04, factura.getIva(), 0.001);
+        assertEquals(87697.04, factura.getTotal(), 0.001);
+        assertEquals("2026-11-03", factura.getTipoCambio().getFecha());
+    }
+
+    private static List<LineaFactura> lineasDePrueba() {
+        return List.of(
                 new LineaFactura("Tubo PVC 1/2", 10, 1000.00, Moneda.COLONES),
                 new LineaFactura("Taladro importado", 1, 120.00, Moneda.DOLARES),
                 new LineaFactura("Clavos 2 pulg", 5, 1200.00, Moneda.COLONES));
-        assertEquals(77608.00, facturacion.subtotal(lineas), 0.001);
-        assertEquals(10089.04, facturacion.iva(77608.00), 0.001);
-        assertEquals(87697.04, facturacion.total(lineas), 0.001);
     }
 }

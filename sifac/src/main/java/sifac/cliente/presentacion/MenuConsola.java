@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
 
+import sifac.comun.entidades.Factura;
 import sifac.comun.entidades.LineaFactura;
+import sifac.comun.entidades.LineaFacturada;
 import sifac.comun.entidades.Moneda;
 import sifac.comun.entidades.TipoCambio;
 import sifac.servidor.logica.ServicioFacturacion;
@@ -96,9 +98,8 @@ public class MenuConsola {
             if (descripcion == null || descripcion.isEmpty()) {
                 break;
             }
-            int cantidad = (int) leerNumero("Cantidad: ");
-            String m = leer("Moneda del precio (C = colones, $ = dolares): ");
-            Moneda moneda = "$".equals(m) ? Moneda.DOLARES : Moneda.COLONES;
+            int cantidad = leerEnteroPositivo("Cantidad: ");
+            Moneda moneda = leerMoneda("Moneda del precio (C = colones, $ = dolares): ");
             double precio = leerNumero("Precio unitario: ");
             lineas.add(new LineaFactura(descripcion, cantidad, precio, moneda));
         }
@@ -107,22 +108,21 @@ public class MenuConsola {
             return;
         }
         salida.println();
-        imprimirFactura(lineas);
+        imprimirFactura(facturacion.facturar(lineas));
     }
 
-    /** Arma el texto de la factura. Los montos los calcula la logica. */
-    void imprimirFactura(List<LineaFactura> lineas) {
-        for (LineaFactura l : lineas) {
+    /** Solo da formato: todos los montos ya vienen calculados en la Factura. */
+    void imprimirFactura(Factura factura) {
+        for (LineaFacturada lf : factura.getLineas()) {
+            LineaFactura l = lf.getLinea();
             salida.println(String.format(Locale.US, "%-20s%3d x %s%9.2f  ->  C%11.2f",
                     l.getDescripcion(), l.getCantidad(), simbolo(l.getMoneda()),
-                    l.getPrecioUnitario(), facturacion.totalLineaEnColones(l)));
+                    l.getPrecioUnitario(), lf.getTotalColones()));
         }
-        double subtotal = facturacion.subtotal(lineas);
-        double iva = facturacion.iva(subtotal);
         salida.println(" ".repeat(42) + "-------------");
-        salida.println(String.format(Locale.US, "%-42sC%11.2f", "SUBTOTAL", subtotal));
-        salida.println(String.format(Locale.US, "%-42sC%11.2f", "IVA " + facturacion.getPorcentajeIva() + "%", iva));
-        salida.println(String.format(Locale.US, "%-42sC%11.2f", "TOTAL", facturacion.total(lineas)));
+        salida.println(String.format(Locale.US, "%-42sC%11.2f", "SUBTOTAL", factura.getSubtotal()));
+        salida.println(String.format(Locale.US, "%-42sC%11.2f", "IVA " + factura.getPorcentajeIva() + "%", factura.getIva()));
+        salida.println(String.format(Locale.US, "%-42sC%11.2f", "TOTAL", factura.getTotal()));
     }
 
     private static String simbolo(Moneda moneda) {
@@ -137,15 +137,50 @@ public class MenuConsola {
     /** Acepta 120.50 o 120,50; vuelve a preguntar si no es un numero. */
     private double leerNumero(String mensaje) {
         while (true) {
-            String texto = leer(mensaje);
-            if (texto == null) {
-                throw new IllegalStateException("Se termino la entrada");
-            }
+            String texto = leerObligatorio(mensaje);
             try {
                 return Double.parseDouble(texto.replace(',', '.'));
             } catch (NumberFormatException e) {
                 salida.println("Eso no es un numero, intente de nuevo.");
             }
         }
+    }
+
+    /** Cantidades: enteros mayores que cero. 2,7 no se redondea en silencio: se vuelve a preguntar. */
+    private int leerEnteroPositivo(String mensaje) {
+        while (true) {
+            String texto = leerObligatorio(mensaje);
+            try {
+                int n = Integer.parseInt(texto);
+                if (n > 0) {
+                    return n;
+                }
+            } catch (NumberFormatException e) {
+                // cae al mensaje de abajo
+            }
+            salida.println("La cantidad debe ser un numero entero mayor que cero.");
+        }
+    }
+
+    /** Solo acepta C o $: un error de dedo no puede facturar en la moneda equivocada. */
+    private Moneda leerMoneda(String mensaje) {
+        while (true) {
+            String texto = leerObligatorio(mensaje);
+            if (texto.equalsIgnoreCase("C")) {
+                return Moneda.COLONES;
+            }
+            if (texto.equals("$")) {
+                return Moneda.DOLARES;
+            }
+            salida.println("Escriba C para colones o $ para dolares.");
+        }
+    }
+
+    private String leerObligatorio(String mensaje) {
+        String texto = leer(mensaje);
+        if (texto == null) {
+            throw new IllegalStateException("Se termino la entrada");
+        }
+        return texto;
     }
 }

@@ -2,6 +2,7 @@ package sifac.servidor.logica;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +43,14 @@ class ServicioTipoCambioTest {
         IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
                 () -> servicio.delDia("2026-10-31"));
         assertEquals("No hay tipo de cambio para 2026-10-31", e.getMessage());
+    }
+
+    @Test
+    void delDiaRechazaFechasMalEscritas() {
+        for (String mala : new String[] {"hola", "2026-13-01", "2026-11-03&idioma=EN", "3/11/2026", ""}) {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> servicio.delDia(mala));
+            assertTrue(e.getMessage().startsWith("Fecha invalida"), e.getMessage());
+        }
     }
 
     /**

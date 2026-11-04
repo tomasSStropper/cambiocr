@@ -77,6 +77,28 @@ class TipoCambioBCCRTest {
     }
 
     @Test
+    void fechaConTextoRaroNoLlegaALaUrl() {
+        BccrDesdeArchivo repo = new BccrDesdeArchivo();
+        assertNull(repo.obtenerPorFecha("2026-11-03&idioma=EN"));
+        assertTrue(repo.urlsPedidas.isEmpty());
+    }
+
+    @Test
+    void jsonMalFormadoEsErrorClaro() {
+        IllegalStateException e = assertThrows(IllegalStateException.class,
+                () -> TipoCambioBCCR.parsearSerie("<html>error</html>"));
+        assertEquals("Respuesta del BCCR con formato inesperado", e.getMessage());
+    }
+
+    @Test
+    void valoresNulosSeIgnoran() {
+        String json = "{\"estado\":true,\"datos\":[{\"series\":["
+                + "{\"fecha\":\"2026-11-02T00:00:00\",\"valorDatoPorPeriodo\":null},"
+                + "{\"valorDatoPorPeriodo\":1.5,\"fecha\":\"2026-11-03\"}]}]}";
+        assertEquals(java.util.Map.of("2026-11-03", 1.5), TipoCambioBCCR.parsearSerie(json));
+    }
+
+    @Test
     void sinTokenNoSePuedeCrear() {
         assertThrows(IllegalArgumentException.class, () -> new TipoCambioBCCR(" "));
     }
