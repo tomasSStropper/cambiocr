@@ -1,5 +1,7 @@
 # CambioYa
 
+> Este repositorio también contiene **SIFAC**, el módulo de tipo de cambio en Java por capas: ver [`sifac/README.md`](sifac/README.md).
+
 Comparador minimalista de tipos de cambio USD/CRC en Costa Rica con frontend en HTML/CSS/JS y endpoints serverless.
 
 ## Requisitos
