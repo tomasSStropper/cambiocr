@@ -1,4 +1,9 @@
-sifac/servidor/datos/TipoCambioEnMemoria.class
+sifac/Aplicacion.class
 sifac/comun/entidades/TipoCambio.class
 sifac/servidor/logica/ServicioTipoCambio.class
 sifac/servidor/datos/RepositorioTipoCambio.class
+sifac/cliente/presentacion/MenuConsola.class
+sifac/servidor/logica/ServicioFacturacion.class
+sifac/comun/entidades/Moneda.class
+sifac/servidor/datos/TipoCambioEnMemoria.class
+sifac/comun/entidades/LineaFactura.class
