@@ -2,96 +2,101 @@ package sifac.servidor.datos;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import sifac.comun.entidades.TipoCambio;
 
 /**
- * FASE 5 (opcional). Lee el tipo de cambio del servicio web del BCCR.
+ * Lee el tipo de cambio de la API SDDE del BCCR (sitio nuevo de Indicadores Economicos).
  *
- * Indicador 317 = compra, 318 = venta. Requiere registrarse para obtener
- * un token. Todo lo que sabe del BCCR (URL, indicadores, formato de fecha,
- * formato XML de la respuesta) vive SOLO en esta clase. Si el BCCR cambia
- * su respuesta, este es el unico archivo que se modifica.
+ * Indicador 317 = compra, 318 = venta. Autenticacion: encabezado
+ * "Authorization: Bearer <token>". Todo lo que sabe del BCCR (URL, indicadores,
+ * formato de fecha y forma del JSON) vive SOLO en esta clase.
  */
 public class TipoCambioBCCR implements RepositorioTipoCambio {
 
-    static final String URL_SERVICIO =
-            "https://gee.bccr.fi.cr/Indicadores/Suscripciones/WS/wsindicadoreseconomicos.asmx/ObtenerIndicadoresEconomicosXML";
+    static final String URL_BASE =
+            "https://apim.bccr.fi.cr/SDDE/api/Bccr.GE.SDDE.Publico.Indicadores.API/indicadoresEconomicos/";
     static final String INDICADOR_COMPRA = "317";
     static final String INDICADOR_VENTA = "318";
 
-    /** Cuantos dias hacia atras buscar el mas reciente (cubre fines de semana y feriados). */
+    /** Cuantos dias hacia atras buscar el mas reciente (fines de semana y feriados). */
     private static final int DIAS_HACIA_ATRAS = 10;
 
-    private static final DateTimeFormatter FORMATO_BCCR = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final Pattern NUM_VALOR = Pattern.compile("<NUM_VALOR>\\s*([0-9.,]+)\\s*</NUM_VALOR>");
+    // Cada punto de la serie es un objeto plano { "fecha": "...", "valorDatoPorPeriodo": 513.4 }.
+    private static final Pattern OBJETO_PLANO = Pattern.compile("\\{[^{}]*\\}");
+    private static final Pattern FECHA = Pattern.compile("\"fecha\"\\s*:\\s*\"(\\d{4}-\\d{2}-\\d{2})");
+    private static final Pattern VALOR = Pattern.compile("\"valorDatoPorPeriodo\"\\s*:\\s*(-?[0-9.]+)");
+    private static final Pattern ESTADO_FALSO = Pattern.compile("\"estado\"\\s*:\\s*false");
 
-    private final String correo;
     private final String token;
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
-    public TipoCambioBCCR(String correo, String token) {
-        this.correo = correo;
-        this.token = token;
+    public TipoCambioBCCR(String token) {
+        if (token == null || token.isBlank()) {
+            throw new IllegalArgumentException("Falta el token del BCCR (variable de entorno BCCR_TOKEN)");
+        }
+        this.token = token.trim();
     }
 
     @Override
     public TipoCambio obtenerPorFecha(String fecha) {
-        Double compra = consultarIndicador(INDICADOR_COMPRA, fecha);
-        Double venta = consultarIndicador(INDICADOR_VENTA, fecha);
-        if (compra == null || venta == null) {
-            return null; // el BCCR no publico ese dia: mismo contrato que la version en memoria
-        }
-        return new TipoCambio(fecha, compra, venta);
+        return masRecienteEntre(fecha, fecha);
     }
 
     @Override
     public TipoCambio obtenerMasReciente() {
-        LocalDate dia = LocalDate.now(ZoneId.of("America/Costa_Rica"));
-        for (int i = 0; i < DIAS_HACIA_ATRAS; i++) {
-            TipoCambio tc = obtenerPorFecha(dia.minusDays(i).toString());
-            if (tc != null) {
-                return tc;
-            }
-        }
-        return null;
+        LocalDate hoy = LocalDate.now(ZoneId.of("America/Costa_Rica"));
+        return masRecienteEntre(hoy.minusDays(DIAS_HACIA_ATRAS).toString(), hoy.toString());
     }
 
-    private Double consultarIndicador(String indicador, String fechaIso) {
-        String fechaBccr = LocalDate.parse(fechaIso).format(FORMATO_BCCR);
-        String url = URL_SERVICIO
-                + "?Indicador=" + indicador
-                + "&FechaInicio=" + codificar(fechaBccr)
-                + "&FechaFinal=" + codificar(fechaBccr)
-                + "&Nombre=" + codificar("SIFAC")
-                + "&SubNiveles=N"
-                + "&CorreoElectronico=" + codificar(correo)
-                + "&Token=" + codificar(token);
-        return extraerValor(descargar(url));
+    /** Pide compra y venta para el rango y devuelve el dia mas reciente que tenga las dos. */
+    private TipoCambio masRecienteEntre(String desde, String hasta) {
+        Map<String, Double> compras = serie(INDICADOR_COMPRA, desde, hasta);
+        Map<String, Double> ventas = serie(INDICADOR_VENTA, desde, hasta);
+        TipoCambio masReciente = null;
+        for (Map.Entry<String, Double> c : compras.entrySet()) { // TreeMap: fechas en orden
+            Double venta = ventas.get(c.getKey());
+            if (venta != null) {
+                masReciente = new TipoCambio(c.getKey(), c.getValue(), venta);
+            }
+        }
+        return masReciente; // null si el BCCR no publico: mismo contrato que la version en memoria
+    }
+
+    private Map<String, Double> serie(String indicador, String desde, String hasta) {
+        String url = URL_BASE + indicador + "/series"
+                + "?fechaInicio=" + desde.replace('-', '/')
+                + "&fechaFin=" + hasta.replace('-', '/')
+                + "&idioma=ES";
+        return parsearSerie(descargar(url));
     }
 
     /**
-     * Hace la peticion HTTP. Es protected para que una prueba la reemplace por
-     * la lectura de un archivo guardado, sin internet ni token.
+     * Hace la peticion HTTP con el token en el encabezado (nunca en la URL).
+     * Es protected para que una prueba la reemplace por un archivo guardado.
      */
     protected String descargar(String url) {
         HttpRequest peticion = HttpRequest.newBuilder(URI.create(url))
                 .timeout(Duration.ofSeconds(15))
+                .header("Authorization", "Bearer " + token)
+                .header("Accept", "application/json")
                 .GET()
                 .build();
         try {
             HttpResponse<String> respuesta = http.send(peticion, HttpResponse.BodyHandlers.ofString());
+            if (respuesta.statusCode() == 401 || respuesta.statusCode() == 403) {
+                throw new IllegalStateException("El BCCR rechazo el token (HTTP " + respuesta.statusCode() + ")");
+            }
             if (respuesta.statusCode() != 200) {
                 throw new IllegalStateException("El BCCR respondio HTTP " + respuesta.statusCode());
             }
@@ -104,23 +109,23 @@ public class TipoCambioBCCR implements RepositorioTipoCambio {
         }
     }
 
-    /**
-     * Saca NUM_VALOR de la respuesta. El BCCR devuelve el XML "escapado" dentro
-     * de un &lt;string&gt;, por eso primero se des-escapa. Devuelve null si no hay valor.
-     */
-    static Double extraerValor(String respuesta) {
-        if (respuesta == null) {
-            return null;
+    /** Convierte el JSON de la API en fecha -> valor, ordenado por fecha. */
+    static Map<String, Double> parsearSerie(String json) {
+        if (json == null) {
+            return new TreeMap<>();
         }
-        String xml = respuesta.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
-        Matcher m = NUM_VALOR.matcher(xml);
-        if (!m.find()) {
-            return null;
+        if (ESTADO_FALSO.matcher(json).find()) {
+            throw new IllegalStateException("El BCCR respondio estado=false: " + json);
         }
-        return Double.parseDouble(m.group(1).replace(',', '.'));
-    }
-
-    private static String codificar(String valor) {
-        return URLEncoder.encode(valor == null ? "" : valor, StandardCharsets.UTF_8);
+        Map<String, Double> valores = new TreeMap<>();
+        Matcher objeto = OBJETO_PLANO.matcher(json);
+        while (objeto.find()) {
+            Matcher f = FECHA.matcher(objeto.group());
+            Matcher v = VALOR.matcher(objeto.group());
+            if (f.find() && v.find()) {
+                valores.put(f.group(1), Double.parseDouble(v.group(1)));
+            }
+        }
+        return valores;
     }
 }

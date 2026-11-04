@@ -4,6 +4,7 @@ import java.util.Scanner;
 
 import sifac.cliente.presentacion.MenuConsola;
 import sifac.servidor.datos.RepositorioTipoCambio;
+import sifac.servidor.datos.TipoCambioBCCR;
 import sifac.servidor.datos.TipoCambioEnMemoria;
 import sifac.servidor.logica.ServicioFacturacion;
 import sifac.servidor.logica.ServicioTipoCambio;
@@ -17,9 +18,20 @@ import sifac.servidor.logica.ServicioTipoCambio;
 public class Aplicacion {
 
     public static void main(String[] args) {
-        // Lo unico que cambia en todo el sistema para usar otra fuente:
-        RepositorioTipoCambio repo = new TipoCambioEnMemoria();
-        // RepositorioTipoCambio repo = new TipoCambioBCCR(correo, token);
+        // Lo unico que cambia en todo el sistema para usar otra fuente.
+        // Por defecto: memoria (los valores de la actividad). Con --bccr: el BCCR real.
+        // El token se lee de la variable de entorno BCCR_TOKEN, nunca se escribe en el codigo.
+        boolean usarBccr = args.length > 0 && args[0].equals("--bccr");
+        RepositorioTipoCambio repo;
+        try {
+            repo = usarBccr
+                    ? new TipoCambioBCCR(System.getenv("BCCR_TOKEN"))
+                    : new TipoCambioEnMemoria();
+        } catch (IllegalArgumentException e) {
+            System.err.println("No se pudo iniciar: " + e.getMessage());
+            System.exit(1);
+            return;
+        }
 
         ServicioTipoCambio servicio = new ServicioTipoCambio(repo);
         ServicioFacturacion facturacion = new ServicioFacturacion(servicio);

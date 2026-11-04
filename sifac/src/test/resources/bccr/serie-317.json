@@ -1,0 +1,14 @@
+{
+  "estado": true,
+  "mensaje": "Consulta exitosa",
+  "datos": [
+    {
+      "codigoIndicador": "317",
+      "nombreIndicador": "Tipo de cambio de compra",
+      "series": [
+        { "fecha": "2026-11-02T00:00:00", "valorDatoPorPeriodo": 505.50 },
+        { "fecha": "2026-11-03T00:00:00", "valorDatoPorPeriodo": 506.25 }
+      ]
+    }
+  ]
+}
