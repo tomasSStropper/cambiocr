@@ -1,2 +1,3 @@
 /home/user/cambiocr/sifac/src/main/java/sifac/comun/entidades/TipoCambio.java
 /home/user/cambiocr/sifac/src/main/java/sifac/servidor/datos/RepositorioTipoCambio.java
+/home/user/cambiocr/sifac/src/main/java/sifac/servidor/datos/TipoCambioEnMemoria.java
