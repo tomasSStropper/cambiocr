@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="sifac.cliente.presentacion.FacturaMixtaTest" time="0.087" tests="3" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="sifac.cliente.presentacion.FacturaMixtaTest" time="0.075" tests="3" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="21"/>
     <property name="sun.jnu.encoding" value="ANSI_X3.4-1968"/>
@@ -13,7 +13,7 @@
     <property name="sun.java.launcher" value="SUN_STANDARD"/>
     <property name="user.country" value="US"/>
     <property name="sun.boot.library.path" value="/usr/lib/jvm/java-21-openjdk-amd64/lib"/>
-    <property name="sun.java.command" value="/home/user/cambiocr/sifac/target/surefire/surefirebooter-20261104023952296_3.jar /home/user/cambiocr/sifac/target/surefire 2026-11-04T02-39-52_219-jvmRun1 surefire-20261104023952296_1tmp surefire_0-20261104023952296_2tmp"/>
+    <property name="sun.java.command" value="/home/user/cambiocr/sifac/target/surefire/surefirebooter-20261104024032415_3.jar /home/user/cambiocr/sifac/target/surefire 2026-11-04T02-40-32_343-jvmRun1 surefire-20261104024032415_1tmp surefire_0-20261104024032415_2tmp"/>
     <property name="http.nonProxyHosts" value="localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="/home/user/cambiocr/sifac/target/test-classes:/home/user/cambiocr/sifac/target/classes:/root/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar:/root/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/root/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar:/root/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar:/root/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar:/root/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar:"/>
@@ -32,7 +32,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="jdk.http.auth.proxying.disabledSchemes" value=""/>
-    <property name="surefire.real.class.path" value="/home/user/cambiocr/sifac/target/surefire/surefirebooter-20261104023952296_3.jar"/>
+    <property name="surefire.real.class.path" value="/home/user/cambiocr/sifac/target/surefire/surefirebooter-20261104024032415_3.jar"/>
     <property name="javax.net.ssl.trustStore" value="/etc/ssl/certs/java/cacerts"/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="21.0.12.1+1-1-24.04.4-Ubuntu"/>
@@ -62,5 +62,5 @@
   </properties>
   <testcase name="imprimeLaFacturaDePrueba" classname="sifac.cliente.presentacion.FacturaMixtaTest" time="0.044"/>
   <testcase name="totalesDeLaLogica" classname="sifac.cliente.presentacion.FacturaMixtaTest" time="0.001"/>
-  <testcase name="elMenuCompletoFacturaConEntradaDelUsuario" classname="sifac.cliente.presentacion.FacturaMixtaTest" time="0.005"/>
+  <testcase name="elMenuCompletoFacturaConEntradaDelUsuario" classname="sifac.cliente.presentacion.FacturaMixtaTest" time="0.004"/>
 </testsuite>
