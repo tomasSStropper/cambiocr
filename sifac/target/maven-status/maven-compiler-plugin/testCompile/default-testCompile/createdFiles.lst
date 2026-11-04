@@ -2,3 +2,4 @@ sifac/comun/entidades/TipoCambioTest.class
 sifac/servidor/logica/ServicioTipoCambioTest$1.class
 sifac/servidor/logica/ServicioTipoCambioTest.class
 sifac/servidor/datos/TipoCambioEnMemoriaTest.class
+sifac/cliente/presentacion/FacturaMixtaTest.class
