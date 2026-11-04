@@ -1,5 +1,8 @@
+const { pendiente } = require('./pendiente');
+
+// TODO: conectar la fuente real de Moneyfex. Mientras tanto no se publican montos.
 async function scrapeMoneyfex() {
-  return { bank: 'Moneyfex', buy: 509.5, sell: 521.9, status: 'DEMO', demo: true };
+  return pendiente('Moneyfex');
 }
 
 module.exports = { scrapeMoneyfex };

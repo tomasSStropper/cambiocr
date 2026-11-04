@@ -1,5 +1,8 @@
+const { pendiente } = require('./pendiente');
+
+// TODO: conectar la fuente real de Popular. Mientras tanto no se publican montos.
 async function scrapePopular() {
-  return { bank: 'Popular', buy: 510.0, sell: 521.4, status: 'DEMO', demo: true };
+  return pendiente('Popular');
 }
 
 module.exports = { scrapePopular };

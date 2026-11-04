@@ -1,0 +1,6 @@
+# No publicar en Vercel lo que no es parte del sitio
+sifac/
+test/
+scripts/
+*.md
+.env*

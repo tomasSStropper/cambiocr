@@ -35,6 +35,8 @@ module.exports = async function handler(req, res) {
 
   const [bccr, ...rates] = await Promise.all([referenciaBccr(), ...SCRAPERS.map(correrScraper)]);
 
+  // Cache en el borde de Vercel: el BCCR publica una vez al dia; 10 min es de sobra fresco.
+  res.setHeader('Cache-Control', bccr.available ? 'public, s-maxage=600, stale-while-revalidate=3600' : 'no-store');
   res.status(200).json({
     updatedAt: new Date().toISOString(),
     bccr,

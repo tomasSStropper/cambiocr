@@ -1,5 +1,8 @@
+const { pendiente } = require('./pendiente');
+
+// TODO: conectar la fuente real de Scotiabank. Mientras tanto no se publican montos.
 async function scrapeScotiabank() {
-  return { bank: 'Scotiabank', buy: 509.95, sell: 520.95, status: 'DEMO', demo: true };
+  return pendiente('Scotiabank');
 }
 
 module.exports = { scrapeScotiabank };

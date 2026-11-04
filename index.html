@@ -3,167 +3,217 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CambioYa — Comparador de tipo de cambio en Costa Rica</title>
+    <title>CambioYa | Tipo de cambio del dólar en Costa Rica</title>
     <meta
       name="description"
-      content="Comparador en tiempo real del tipo de cambio del dólar en Costa Rica."
+      content="Tipo de cambio oficial del Banco Central de Costa Rica, calculadora de dólares a colones e historial de los últimos 30 días."
     />
-    <meta property="og:title" content="CambioYa — Tipo de cambio en Costa Rica" />
+    <meta property="og:title" content="CambioYa | Tipo de cambio en Costa Rica" />
     <meta
       property="og:description"
-      content="Compara compra y venta del dólar entre bancos de Costa Rica en tiempo real."
+      content="Referencia oficial del BCCR, calculadora e historial del dólar en Costa Rica."
     />
-    <meta property="og:image" content="https://placehold.co/1200x630/080808/EDEDED?text=CambioYa" />
+    <meta name="theme-color" content="#0b0d0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f8f7" media="(prefers-color-scheme: light)" />
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;800&family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css" />
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+    <script>
+      // Aplica el tema guardado antes de pintar, para evitar un parpadeo.
+      try {
+        const tema = localStorage.getItem('cambioya-tema');
+        if (tema === 'light' || tema === 'dark') document.documentElement.dataset.theme = tema;
+      } catch (e) {}
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js" defer></script>
     <script src="app.js" defer></script>
   </head>
   <body>
-    <div id="errorBanner" class="app__error-banner" hidden>
-      <span data-i18n="error_banner">Los datos pueden no estar actualizados.</span>
-    </div>
+    <a class="skip-link" href="#contenido" data-i18n="skip">Saltar al contenido</a>
 
     <header class="nav">
       <div class="nav__inner container">
-        <div class="nav__logo">CambioYa</div>
+        <a class="brand" href="#" aria-label="CambioYa, inicio">
+          <span class="brand__mark" aria-hidden="true">₡</span>
+          <span class="brand__name">CambioYa</span>
+        </a>
+        <nav class="nav__links" aria-label="Secciones">
+          <a href="#calculadora" data-i18n="nav_calc">Calculadora</a>
+          <a href="#comparador" data-i18n="nav_compare">Comparador</a>
+          <a href="#historial" data-i18n="nav_history">Historial</a>
+        </nav>
         <div class="nav__actions">
-          <button id="langToggle" class="button button--outline button--small" type="button">ES / EN</button>
-          <button id="refreshBtn" class="button button--outline button--small" type="button" data-i18n="refresh">
-            Actualizar
+          <button id="langToggle" class="icon-btn icon-btn--text" type="button" aria-label="Cambiar idioma">EN</button>
+          <button id="themeToggle" class="icon-btn" type="button" aria-label="Cambiar tema">
+            <i class="ph ph-moon" aria-hidden="true"></i>
+          </button>
+          <button id="refreshBtn" class="icon-btn" type="button" aria-label="Actualizar datos">
+            <i class="ph ph-arrows-clockwise" aria-hidden="true"></i>
           </button>
         </div>
       </div>
     </header>
 
-    <main class="container">
-      <section class="hero section">
-        <div class="section-label">
-          <span class="section-label__line"></span>
-          <span data-i18n="hero_label">Tipo de cambio — Costa Rica</span>
-        </div>
-        <h1 class="hero__title" data-i18n="hero_title">El mejor cambio,<br />sin buscar.</h1>
-        <p class="hero__subtitle" data-i18n="hero_sub">
-
-        </p>
-
-        <div class="hero__metrics">
-          <div class="hero__metric">
-            <div class="hero__metric-label">BCCR <span data-i18n="buy">Compra</span></div>
-            <div class="hero__metric-value mono" id="heroBccrBuy">₡510.50</div>
-          </div>
-          <div class="hero__metric">
-            <div class="hero__metric-label">BCCR <span data-i18n="sell">Venta</span></div>
-            <div class="hero__metric-value mono" id="heroBccrSell">₡520.30</div>
+    <main id="contenido">
+      <section class="hero container" aria-labelledby="heroTitle">
+        <div class="hero__copy reveal">
+          <h1 id="heroTitle" class="hero__title" data-i18n="hero_title">El mejor cambio, sin buscar.</h1>
+          <p class="hero__subtitle" data-i18n="hero_sub">
+            El tipo de cambio oficial del Banco Central, una calculadora clara y el historial del dólar.
+          </p>
+          <div class="hero__ctas">
+            <a class="btn btn--primary" href="#calculadora" data-i18n="hero_cta">Calcular</a>
+            <a class="btn btn--ghost" href="#historial" data-i18n="hero_cta2">Ver historial</a>
           </div>
         </div>
 
-        <p class="hero__source" id="heroUpdatedLine">
-          Fuente: Banco Central de Costa Rica — actualizado hoy 10:30 AM
-        </p>
+        <article class="ref-card reveal" aria-labelledby="refTitle" aria-live="polite">
+          <header class="ref-card__head">
+            <h2 id="refTitle" class="ref-card__title" data-i18n="ref_title">Referencia BCCR</h2>
+            <span class="ref-card__date mono" id="refDate">&nbsp;</span>
+          </header>
+
+          <div class="ref-card__body" id="refBody" data-state="loading">
+            <dl class="ref-card__rates">
+              <div class="ref-rate">
+                <dt data-i18n="buy">Compra</dt>
+                <dd class="mono" id="refBuy"><span class="skeleton skeleton--num"></span></dd>
+                <dd class="ref-rate__delta mono" id="refBuyDelta"></dd>
+              </div>
+              <div class="ref-rate">
+                <dt data-i18n="sell">Venta</dt>
+                <dd class="mono" id="refSell"><span class="skeleton skeleton--num"></span></dd>
+                <dd class="ref-rate__delta mono" id="refSellDelta"></dd>
+              </div>
+            </dl>
+            <div class="ref-card__spark" id="refSpark" aria-hidden="true"></div>
+            <p class="ref-card__foot">
+              <span data-i18n="spread">Diferencial</span>
+              <span class="mono" id="refSpread">&nbsp;</span>
+            </p>
+          </div>
+
+          <div class="ref-card__error" id="refError" hidden>
+            <i class="ph ph-cloud-slash" aria-hidden="true"></i>
+            <p data-i18n="ref_error">No pudimos conectar con el Banco Central. Intenta de nuevo en unos minutos.</p>
+            <button class="btn btn--ghost btn--small" type="button" id="refRetry" data-i18n="retry">Reintentar</button>
+          </div>
+        </article>
       </section>
 
-      <section class="section comparator">
-        <div class="section-label">
-          <span class="section-label__line"></span>
+      <section class="section container calc" id="calculadora" aria-labelledby="calcTitle">
+        <div class="calc__panel">
+          <div class="calc__controls">
+            <h2 id="calcTitle" class="section__title" data-i18n="calc_title">Calculadora</h2>
 
+            <div class="segmented" role="radiogroup" aria-label="Operación">
+              <button class="segmented__btn" type="button" role="radio" aria-checked="true" data-mode="buy" data-i18n="calc_buy">Compro dólares</button>
+              <button class="segmented__btn" type="button" role="radio" aria-checked="false" data-mode="sell" data-i18n="calc_sell">Vendo dólares</button>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="amountInput" data-i18n="calc_label">Monto en dólares</label>
+              <div class="field__input-wrap">
+                <span class="field__prefix mono" aria-hidden="true">$</span>
+                <input id="amountInput" class="field__input mono" type="text" inputmode="decimal" autocomplete="off" value="100" aria-describedby="amountHelp" />
+              </div>
+              <p class="field__help" id="amountHelp" data-i18n="calc_help">Puedes usar punto o coma para los decimales.</p>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="bankSelect" data-i18n="calc_entity">Entidad</label>
+              <select id="bankSelect" class="field__input"></select>
+            </div>
+          </div>
+
+          <div class="calc__result" aria-live="polite">
+            <p class="calc__result-label" id="calcLabel" data-i18n="calc_you_pay">Pagas</p>
+            <p class="calc__result-value mono" id="calcResult">₡0,00</p>
+            <p class="calc__rule" id="calcRule"></p>
+          </div>
         </div>
+      </section>
 
-        <div id="tableSkeleton" class="skeleton-table">
-          <div class="skeleton-table__row"></div>
-          <div class="skeleton-table__row"></div>
-          <div class="skeleton-table__row"></div>
-          <div class="skeleton-table__row"></div>
-        </div>
+      <section class="section container" id="comparador" aria-labelledby="compareTitle">
+        <h2 id="compareTitle" class="section__title" data-i18n="compare_title">Comparador de entidades</h2>
+        <p class="notice" role="note">
+          <i class="ph ph-info" aria-hidden="true"></i>
+          <span data-i18n="demo_notice">Los montos de los bancos son de ejemplo mientras conectamos cada entidad. Solo la referencia del BCCR es real.</span>
+        </p>
 
-        <div class="table-wrap" id="tableWrap" hidden>
+        <div class="table-wrap">
           <table class="table" id="ratesTable">
             <thead>
               <tr>
-                <th>Banco</th>
-                <th data-i18n="buy">Compra</th>
-                <th data-i18n="sell">Venta</th>
-                <th data-i18n="diff_vs_bccr">vs referencia BCCR</th>
-                <th>Estado</th>
+                <th scope="col" data-i18n="col_entity">Entidad</th>
+                <th scope="col" class="num" data-i18n="buy">Compra</th>
+                <th scope="col" class="num" data-i18n="sell">Venta</th>
+                <th scope="col" class="num col-vs" data-i18n="col_vs">Venta vs BCCR</th>
               </tr>
             </thead>
-            <tbody id="ratesTableBody"></tbody>
+            <tbody id="ratesTableBody">
+              <tr class="table__skeleton"><td colspan="4"><span class="skeleton"></span></td></tr>
+              <tr class="table__skeleton"><td colspan="4"><span class="skeleton"></span></td></tr>
+              <tr class="table__skeleton"><td colspan="4"><span class="skeleton"></span></td></tr>
+            </tbody>
           </table>
         </div>
-
-        <p class="comparator__footnote">Datos obtenidos directamente de cada entidad</p>
       </section>
 
-      <section class="section calculator" id="calculatorSection">
-        <div class="section-label">
-          <span class="section-label__line"></span>
-          <span data-i18n="calc_title">Calculadora</span>
+      <section class="section container" id="historial" aria-labelledby="historyTitle">
+        <div class="history__head">
+          <h2 id="historyTitle" class="section__title" data-i18n="chart_title">Historial del BCCR</h2>
+          <div class="segmented segmented--small" role="radiogroup" aria-label="Rango">
+            <button class="segmented__btn" type="button" role="radio" aria-checked="true" data-range="7" data-i18n="chart_7">7 días</button>
+            <button class="segmented__btn" type="button" role="radio" aria-checked="false" data-range="15" data-i18n="chart_15">15 días</button>
+            <button class="segmented__btn" type="button" role="radio" aria-checked="false" data-range="30" data-i18n="chart_30">30 días</button>
+          </div>
         </div>
-        <div class="calculator__layout">
-          <div class="calculator__controls">
-            <label class="label" data-i18n="calc_label">¿Cuánto recibes?</label>
-            <input id="amountInput" class="input" type="number" min="0" step="0.01" data-i18n-placeholder="calc_placeholder" placeholder="Monto en dólares" />
-            <div class="toggle" role="group" aria-label="Tipo de operación">
-              <button id="modeBuy" class="toggle__btn toggle__btn--active" type="button" data-i18n="calc_toggle_buy">Compro dólares</button>
-              <button id="modeSell" class="toggle__btn" type="button" data-i18n="calc_toggle_sell">Vendo dólares</button>
+
+        <div class="history__grid">
+          <div class="history__chart" id="historyChartWrap" data-state="loading">
+            <canvas id="historyChart" role="img" aria-label="Gráfico del tipo de cambio de compra y venta"></canvas>
+            <p class="history__empty" id="historyEmpty" hidden data-i18n="history_error">El historial no está disponible en este momento.</p>
+          </div>
+          <dl class="history__stats" id="historyStats">
+            <div><dt data-i18n="stat_min">Venta mínima</dt><dd class="mono" id="statMin">&nbsp;</dd></div>
+            <div><dt data-i18n="stat_max">Venta máxima</dt><dd class="mono" id="statMax">&nbsp;</dd></div>
+            <div><dt data-i18n="stat_change">Cambio en el período</dt><dd class="mono" id="statChange">&nbsp;</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="section container alerts" id="alertas" aria-labelledby="alertTitle">
+        <div class="alerts__panel">
+          <div>
+            <h2 id="alertTitle" class="section__title" data-i18n="alert_title">Alertas del tipo de cambio</h2>
+            <p class="alerts__sub" data-i18n="alert_sub">Las alertas automáticas están en construcción. Déjanos tu correo y te avisamos cuando estén listas.</p>
+          </div>
+          <form class="alerts__form" id="alertForm" novalidate>
+            <div class="field">
+              <label class="field__label" for="alertEmail" data-i18n="alert_label">Correo electrónico</label>
+              <input class="field__input" id="alertEmail" type="email" autocomplete="email" required aria-describedby="alertMessage" />
             </div>
-            <label class="label" for="bankSelect">Banco</label>
-            <select id="bankSelect" class="select"></select>
-          </div>
-          <div class="calculator__result">
-
-            <div class="calculator__result-value mono" id="calcResult">₡0.00</div>
-            <p class="calculator__result-bank" id="calcBank">—</p>
-            <p class="calculator__result-rate" id="calcRate">—</p>
-          </div>
+            <button class="btn btn--primary" id="alertSubmit" type="submit" data-i18n="alert_btn">Avisarme</button>
+            <p class="field__help alerts__message" id="alertMessage" role="status"></p>
+          </form>
         </div>
-      </section>
-
-      <section class="section history">
-        <div class="section-label">
-          <span class="section-label__line"></span>
-          <span data-i18n="chart_title">Historial del tipo de cambio</span>
-        </div>
-        <div class="history__ranges" role="group">
-          <button class="range-btn range-btn--active" data-range="7" data-i18n="chart_7">7 días</button>
-          <button class="range-btn" data-range="15" data-i18n="chart_15">15 días</button>
-          <button class="range-btn" data-range="30" data-i18n="chart_30">30 días</button>
-        </div>
-        <div class="history__canvas-wrap">
-          <canvas id="historyChart"></canvas>
-        </div>
-      </section>
-
-      <section class="section alerts" id="alertsSection">
-        <div class="section-label section-label--center">
-          <span class="section-label__line"></span>
-          <span data-i18n="alert_label">Alertas de tipo de cambio</span>
-        </div>
-        <h2 class="alerts__title" data-i18n="alert_title">Sé el primero en saber.</h2>
-        <p class="alerts__subtitle" data-i18n="alert_sub">
-
-        </p>
-
-        <form class="alerts__form" id="alertForm">
-          <input class="input" id="alertEmail" type="email" required data-i18n-placeholder="alert_placeholder" placeholder="tu@correo.com" />
-          <button id="customizeBtn" class="button button--ghost" type="button">Personalizar alerta</button>
-          <input class="input alerts__threshold" id="alertThreshold" type="number" min="0" step="0.01" placeholder="Umbral opcional" hidden />
-          <button class="button button--primary" id="alertSubmit" type="submit" data-i18n="alert_btn">Activar alerta</button>
-        </form>
-        <div class="alerts__message" id="alertMessage" hidden></div>
       </section>
     </main>
 
     <footer class="footer">
       <div class="container footer__inner">
-        <p data-i18n="footer_copy">CambioYa 2026</p>
-        <p data-i18n="footer_disclaimer">
-          Los tipos de cambio son referenciales. CambioYa no es una entidad financiera.
+        <p class="footer__brand">CambioYa 2026</p>
+        <p data-i18n="footer_disclaimer">Los tipos de cambio son referenciales. CambioYa no es una entidad financiera.</p>
+        <p>
+          <span data-i18n="footer_source">Fuente oficial:</span>
+          <a href="https://sdd.bccr.fi.cr/es/IndicadoresEconomicos/Inicio/" rel="noopener" target="_blank">Banco Central de Costa Rica</a>
         </p>
       </div>
     </footer>

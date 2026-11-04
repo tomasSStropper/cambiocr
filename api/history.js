@@ -13,8 +13,10 @@ module.exports = async function handler(req, res) {
 
   try {
     const points = await obtenerHistorial(range);
+    res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=7200');
     res.status(200).json({ range, points });
   } catch (error) {
+    res.setHeader('Cache-Control', 'no-store');
     // Sin token o sin conexion: se dice claramente, no se inventan datos.
     res.status(503).json({ range, points: [], error: error.code || 'ERROR', message: error.message });
   }

@@ -1,5 +1,8 @@
+const { pendiente } = require('./pendiente');
+
+// TODO: conectar la fuente real de BCR. Mientras tanto no se publican montos.
 async function scrapeBcr() {
-  return { bank: 'BCR', buy: 510.1, sell: 521.2, status: 'DEMO', demo: true };
+  return pendiente('BCR');
 }
 
 module.exports = { scrapeBcr };
