@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: sifac.servidor.logica.ServicioTipoCambioTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.015 s -- in sifac.servidor.logica.ServicioTipoCambioTest

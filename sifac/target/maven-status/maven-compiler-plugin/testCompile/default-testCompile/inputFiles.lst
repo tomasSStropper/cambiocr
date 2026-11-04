@@ -1,2 +1,3 @@
 /home/user/cambiocr/sifac/src/test/java/sifac/comun/entidades/TipoCambioTest.java
 /home/user/cambiocr/sifac/src/test/java/sifac/servidor/datos/TipoCambioEnMemoriaTest.java
+/home/user/cambiocr/sifac/src/test/java/sifac/servidor/logica/ServicioTipoCambioTest.java
