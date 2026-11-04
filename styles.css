@@ -292,6 +292,11 @@ a {
   padding-bottom: 96px;
 }
 
+/* Sin esto, un hijo con contenido ancho puede estirar la grilla mas alla de la pantalla */
+.hero > * {
+  min-width: 0;
+}
+
 .hero__title {
   margin: 0;
   font-size: clamp(2.6rem, 5.4vw, 4.25rem);
@@ -376,12 +381,13 @@ a {
   min-height: 20px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  white-space: nowrap;
+  flex-wrap: wrap;
+  gap: 0 4px;
 }
 .ref-rate__delta small {
   font-family: var(--font);
   font-size: 12px;
+  white-space: nowrap;
 }
 
 .ref-card__spark {
@@ -590,99 +596,6 @@ select.field__input {
 }
 .field__help.is-error {
   color: var(--danger);
-}
-
-/* ---------- Comparador ---------- */
-.notice {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin: 0 0 16px;
-  padding: 12px 14px;
-  border-radius: var(--radius-control);
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 14px;
-}
-.notice i {
-  font-size: 18px;
-  margin-top: 1px;
-  color: var(--accent);
-}
-
-.table-wrap {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-panel);
-  background: var(--surface);
-  overflow-x: auto;
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 15px;
-}
-
-.table th {
-  text-align: left;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.table td {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-}
-.table tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.table .num {
-  text-align: right;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-.table th.num {
-  font-family: var(--font);
-}
-
-.table__entity {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 500;
-}
-
-.tag {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  background: var(--surface-2);
-  color: var(--muted);
-  border: 1px solid var(--border);
-}
-.tag--accent {
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  border-color: transparent;
-}
-
-.table__best {
-  color: var(--accent-strong);
-  font-weight: 600;
-}
-
-.table__muted {
-  color: var(--muted);
-}
-
-.table.sin-comparacion .col-vs {
-  display: none;
 }
 
 /* ---------- Historial ---------- */
@@ -908,23 +821,6 @@ select.field__input {
   .history__stats dd {
     margin: 0;
     font-size: 17px;
-  }
-  .table {
-    font-size: 14px;
-  }
-  .table th,
-  .table td {
-    padding: 12px 10px;
-  }
-  .table__entity {
-    flex-wrap: wrap;
-    gap: 4px 8px;
-  }
-  .tag {
-    font-size: 11px;
-  }
-  .table .col-vs {
-    display: none;
   }
   .segmented {
     justify-self: stretch;

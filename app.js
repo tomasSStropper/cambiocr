@@ -10,7 +10,6 @@ const TEXTOS = {
   es: {
     skip: 'Saltar al contenido',
     nav_calc: 'Calculadora',
-    nav_compare: 'Comparador',
     nav_history: 'Historial',
     hero_title: 'El mejor cambio, sin buscar.',
     hero_sub: 'El tipo de cambio oficial del Banco Central, una calculadora clara y el historial del dólar.',
@@ -30,22 +29,11 @@ const TEXTOS = {
     calc_help: 'Usa coma o punto para los decimales, por ejemplo 1.250,50.',
     calc_invalid: 'Escribe un monto válido, por ejemplo 120,50.',
     calc_none: 'Sin datos',
-    calc_entity: 'Entidad',
     calc_you_pay: 'Pagas',
     calc_you_get: 'Recibes',
-    calc_rule_buy: 'Calculado con el tipo de venta ({tasa}), porque la entidad te vende los dólares.',
-    calc_rule_sell: 'Calculado con el tipo de compra ({tasa}), porque la entidad te compra los dólares.',
+    calc_rule_buy: 'Calculado con el tipo de venta de referencia del BCCR ({tasa}), porque al comprar dólares te los venden. Tu banco puede usar un tipo distinto.',
+    calc_rule_sell: 'Calculado con el tipo de compra de referencia del BCCR ({tasa}), porque al vender dólares te los compran. Tu banco puede usar un tipo distinto.',
     calc_no_data: 'La referencia del BCCR no está disponible en este momento.',
-    bccr_option: 'BCCR (referencia oficial)',
-    compare_title: 'Comparador de entidades',
-    demo_notice: 'Estamos conectando cada banco. Por ahora solo publicamos la referencia oficial del BCCR: preferimos no mostrar montos que no podemos verificar.',
-    col_entity: 'Entidad',
-    col_vs: 'Venta vs BCCR',
-    tag_official: 'Oficial',
-    tag_pending: 'Pendiente',
-    tag_unavailable: 'No disponible',
-    no_data: 'Sin dato',
-    table_error: 'No pudimos cargar las entidades. Intenta de nuevo.',
     chart_title: 'Historial del BCCR',
     chart_7: '7 días',
     chart_15: '15 días',
@@ -74,7 +62,6 @@ const TEXTOS = {
   en: {
     skip: 'Skip to content',
     nav_calc: 'Calculator',
-    nav_compare: 'Compare',
     nav_history: 'History',
     hero_title: 'The best rate, without searching.',
     hero_sub: 'The official Central Bank exchange rate, a clear calculator and the dollar history.',
@@ -94,22 +81,11 @@ const TEXTOS = {
     calc_help: 'Use a dot or a comma for decimals, for example 1,250.50.',
     calc_invalid: 'Enter a valid amount, for example 120.50.',
     calc_none: 'No data',
-    calc_entity: 'Institution',
     calc_you_pay: 'You pay',
     calc_you_get: 'You get',
-    calc_rule_buy: 'Calculated with the sell rate ({tasa}), because the institution sells you the dollars.',
-    calc_rule_sell: 'Calculated with the buy rate ({tasa}), because the institution buys the dollars from you.',
+    calc_rule_buy: 'Calculated with the BCCR reference sell rate ({tasa}), because when you buy dollars they are sold to you. Your bank may use a different rate.',
+    calc_rule_sell: 'Calculated with the BCCR reference buy rate ({tasa}), because when you sell dollars they are bought from you. Your bank may use a different rate.',
     calc_no_data: 'The BCCR reference is not available right now.',
-    bccr_option: 'BCCR (official reference)',
-    compare_title: 'Compare institutions',
-    demo_notice: 'We are connecting each bank. For now we only publish the official BCCR reference: we would rather not show amounts we cannot verify.',
-    col_entity: 'Institution',
-    col_vs: 'Sell vs BCCR',
-    tag_official: 'Official',
-    tag_pending: 'Pending',
-    tag_unavailable: 'Unavailable',
-    no_data: 'No data',
-    table_error: 'We could not load the institutions. Please try again.',
     chart_title: 'BCCR history',
     chart_7: '7 days',
     chart_15: '15 days',
@@ -143,7 +119,6 @@ const estado = {
   modo: 'buy', // buy = compro dolares, sell = vendo dolares
   rango: 7,
   bccr: null, // { buy, sell, date } o null si no hay dato
-  entidades: [], // respuesta de /api/rates.rates
   historial: [], // [{ date, buy, sell }]
   grafico: null,
   pedidoHistorial: 0, // para descartar respuestas viejas si el usuario cambia de rango rapido
@@ -177,10 +152,10 @@ const api = {
 };
 
 /* ============ 4. Reglas del negocio ============ */
-// Misma regla que SIFAC: si compras dolares, la entidad te los VENDE (tasa de venta);
-// si vendes dolares, la entidad te los COMPRA (tasa de compra).
-function tasaPara(modo, entidad) {
-  return modo === 'buy' ? entidad.sell : entidad.buy;
+// Misma regla que SIFAC: si compras dolares, te los VENDEN (tipo de venta);
+// si vendes dolares, te los COMPRAN (tipo de compra).
+function tasaPara(modo, tipoCambio) {
+  return modo === 'buy' ? tipoCambio.sell : tipoCambio.buy;
 }
 
 function convertir(usd, tasa) {
@@ -196,18 +171,6 @@ function leerMonto(texto) {
   const [, entero, decimales] = s.match(/^(.*?)(?:[.,](\d{1,2}))?$/);
   const n = Number(entero.replace(/[.,]/g, '') + (decimales ? '.' + decimales : ''));
   return Number.isFinite(n) ? n : null;
-}
-
-// Entidades con datos reales para la calculadora: el BCCR primero.
-function entidadesConDatos() {
-  const lista = [];
-  if (estado.bccr) lista.push({ id: 'BCCR', nombre: t('bccr_option'), buy: estado.bccr.buy, sell: estado.bccr.sell });
-  for (const e of estado.entidades) {
-    if (Number.isFinite(e.buy) && Number.isFinite(e.sell) && !e.pending && !e.error) {
-      lista.push({ id: e.bank, nombre: e.bank, buy: e.buy, sell: e.sell });
-    }
-  }
-  return lista;
 }
 
 /* ============ 5. Formato ============ */
@@ -239,13 +202,6 @@ function crear(tag, opciones = {}, hijos = []) {
   if (opciones.text !== undefined) el.textContent = opciones.text;
   for (const hijo of hijos) el.append(hijo);
   return el;
-}
-
-// Celda "-" que un lector de pantalla lee como "Sin dato" y no como "guion".
-function celdaSinDato(clase) {
-  const guion = crear('span', { text: '-' });
-  guion.setAttribute('aria-hidden', 'true');
-  return crear('td', { className: clase }, [guion, crear('span', { className: 'sr-only', text: t('no_data') })]);
 }
 
 function icono(nombre) {
@@ -337,70 +293,6 @@ function renderReferencia() {
   marcarActualizado(cuerpo);
 }
 
-function renderTabla() {
-  const cuerpo = $('ratesTableBody');
-  cuerpo.replaceChildren();
-
-  const filas = [];
-  if (estado.bccr) {
-    filas.push({ nombre: 'BCCR', buy: estado.bccr.buy, sell: estado.bccr.sell, tag: 'official' });
-  } else if (estado.entidades.length) {
-    filas.push({ nombre: 'BCCR', tag: 'unavailable' });
-  }
-  if (!filas.length && !estado.entidades.length) {
-    const td = crear('td', { className: 'table__muted', text: t('table_error') });
-    td.colSpan = 4;
-    cuerpo.append(crear('tr', {}, [td]));
-    return;
-  }
-  for (const e of estado.entidades) {
-    const tieneDatos = Number.isFinite(e.buy) && Number.isFinite(e.sell) && !e.pending && !e.error;
-    filas.push({ nombre: e.bank, buy: e.buy, sell: e.sell, tag: tieneDatos ? null : e.pending ? 'pending' : 'unavailable' });
-  }
-
-  const reales = filas.filter((f) => f.tag !== 'pending' && f.tag !== 'unavailable');
-  const mejorVenta = reales.length > 1 ? Math.min(...reales.map((f) => f.sell)) : null;
-  // La columna "vs BCCR" solo tiene sentido cuando hay otra entidad real con que comparar.
-  $('ratesTable').classList.toggle('sin-comparacion', reales.length < 2);
-
-  for (const f of filas) {
-    const tr = document.createElement('tr');
-    const entidad = crear('td', {}, [crear('span', { className: 'table__entity', text: f.nombre })]);
-    if (f.tag) {
-      const clase = f.tag === 'official' ? 'tag tag--accent' : 'tag';
-      entidad.firstChild.append(crear('span', { className: clase, text: t(`tag_${f.tag}`) }));
-    }
-    tr.append(entidad);
-
-    if (f.tag === 'pending' || f.tag === 'unavailable') {
-      for (const clase of ['num table__muted', 'num table__muted', 'num table__muted col-vs']) {
-        tr.append(celdaSinDato(clase));
-      }
-    } else {
-      tr.append(crear('td', { className: 'num', text: colones(f.buy) }));
-      tr.append(crear('td', { className: `num${f.sell === mejorVenta ? ' table__best' : ''}`, text: colones(f.sell) }));
-      if (estado.bccr && f.nombre !== 'BCCR') {
-        tr.append(crear('td', { className: 'num table__muted col-vs', text: conSigno(f.sell - estado.bccr.sell) }));
-      } else {
-        tr.append(celdaSinDato('num table__muted col-vs'));
-      }
-    }
-    cuerpo.append(tr);
-  }
-}
-
-function renderSelectorEntidad() {
-  const select = $('bankSelect');
-  const previo = select.value;
-  select.replaceChildren();
-  for (const e of entidadesConDatos()) {
-    const opcion = crear('option', { text: e.nombre });
-    opcion.value = e.id;
-    select.append(opcion);
-  }
-  if ([...select.options].some((o) => o.value === previo)) select.value = previo;
-}
-
 function renderCalculadora() {
   marcarRadios('[data-mode]', (b) => b.dataset.mode === estado.modo);
   $('calcLabel').textContent = t(estado.modo === 'buy' ? 'calc_you_pay' : 'calc_you_get');
@@ -413,17 +305,14 @@ function renderCalculadora() {
   ayuda.textContent = t(valido ? 'calc_help' : 'calc_invalid');
   ayuda.classList.toggle('is-error', !valido);
 
-  const disponibles = entidadesConDatos();
-  $('bankSelect').disabled = !disponibles.length;
-  const entidad = disponibles.find((e) => e.id === $('bankSelect').value);
   const resultado = $('calcResult');
-  if (!entidad || !valido) {
+  if (!estado.bccr || !valido) {
     resultado.textContent = t('calc_none');
     resultado.classList.add('is-empty');
-    $('calcRule').textContent = entidad ? '' : t('calc_no_data');
+    $('calcRule').textContent = estado.bccr ? '' : t('calc_no_data');
     return;
   }
-  const tasa = tasaPara(estado.modo, entidad);
+  const tasa = tasaPara(estado.modo, estado.bccr);
   resultado.textContent = colones(convertir(monto, tasa));
   resultado.classList.remove('is-empty');
   $('calcRule').textContent = t(estado.modo === 'buy' ? 'calc_rule_buy' : 'calc_rule_sell').replace('{tasa}', colones(tasa));
@@ -521,8 +410,6 @@ function renderGrafico() {
 function renderTodo() {
   renderTextos();
   renderReferencia();
-  renderTabla();
-  renderSelectorEntidad();
   renderCalculadora();
   renderGrafico();
 }
@@ -532,10 +419,8 @@ async function cargarTasas() {
   try {
     const datos = await api.tasas();
     estado.bccr = datos.bccr && datos.bccr.available ? datos.bccr : null;
-    estado.entidades = Array.isArray(datos.rates) ? datos.rates : [];
   } catch {
     estado.bccr = null;
-    estado.entidades = [];
   }
 }
 
@@ -624,7 +509,6 @@ function enlazarEventos() {
   );
 
   $('amountInput').addEventListener('input', renderCalculadora);
-  $('bankSelect').addEventListener('change', renderCalculadora);
 
   document.querySelectorAll('[data-range]').forEach((b) =>
     b.addEventListener('click', async () => {

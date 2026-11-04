@@ -1,53 +1,47 @@
 # CambioYa
 
-> Este repositorio también contiene **SIFAC**, el módulo de tipo de cambio en Java por capas: ver [`sifac/README.md`](sifac/README.md).
+Tipo de cambio del dólar en Costa Rica con datos oficiales del Banco Central (BCCR): referencia del día, calculadora de dólares a colones e historial de hasta 30 días.
 
-Comparador minimalista de tipos de cambio USD/CRC en Costa Rica con frontend en HTML/CSS/JS y endpoints serverless.
+> Este repositorio también contiene **SIFAC**, el módulo de tipo de cambio en Java por capas: ver [`sifac/README.md`](sifac/README.md).
 
 ## Requisitos
 
 - Node.js 20+
-- Variables de entorno configuradas
+- Un token de la API SDDE del BCCR: en el [sitio de Indicadores Económicos](https://sdd.bccr.fi.cr/es/IndicadoresEconomicos/Inicio/), **Mi Perfil → Generar**.
 
-## Setup local
-
-1. Copia variables:
+## Correr en local
 
 ```bash
-cp .env.example .env
-```
-
-2. Instala dependencias:
-
-```bash
+cp .env.example .env      # pegue su token en BCCR_TOKEN
 npm install
+npm run dev               # http://localhost:3000
+npm test                  # pruebas del cliente del BCCR (sin internet)
 ```
 
-3. Sirve el proyecto con tu runtime favorito (Vercel recomendado) para exponer rutas `/api/*`.
+`.env` está en `.gitignore`: el token nunca se sube al repositorio.
 
 ## Variables de entorno
 
-- `BCCR_TOKEN`: token gratuito de gee.bccr.fi.cr
-- `SMTP_HOST`: host SMTP
-- `SMTP_PORT`: puerto SMTP
-- `SMTP_USER`: usuario SMTP
-- `SMTP_PASS`: contraseña SMTP
-- `ALERT_FROM`: remitente de correo para alertas (default `alertas@cambioya.com`)
+| Variable | Uso |
+|---|---|
+| `BCCR_TOKEN` | Token Bearer de la API SDDE del BCCR (obligatorio) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | Correo para registrar interesados en alertas (opcional) |
+| `ALERT_FROM`, `ALERT_INBOX` | Remitente y buzón que recibe los registros (opcional) |
 
-## Deploy
+En Vercel se configuran en *Project → Settings → Environment Variables* y requieren un redeploy.
 
-### Vercel
+## Endpoints
 
-1. Importa el repositorio en Vercel.
-2. Configura variables de entorno del `.env.example`.
-3. Deploy con framework preset `Other`.
-4. Verifica endpoints:
-   - `GET /api/rates`
-   - `GET /api/history?range=7`
-   - `POST /api/alert`
+- `GET /api/rates`: referencia del BCCR más reciente `{ bccr: { available, buy, sell, date } }`.
+- `GET /api/history?range=7|15|30`: serie diaria de compra y venta.
+- `POST /api/alert`: registra un correo interesado en las alertas.
 
 ## Arquitectura
 
-- `index.html`, `styles.css`, `app.js`: UI y lógica cliente.
-- `api/rates.js`, `api/history.js`, `api/alert.js`: endpoints serverless.
-- `scrapers/*`: módulos de captura por entidad.
+| Capa | Archivos | Responsabilidad |
+|---|---|---|
+| Datos | `lib/bccr.js` | Único lugar que habla con el BCCR (URL, token Bearer, indicadores 317/318, forma del JSON). |
+| API | `api/*.js` | Expone los datos, define caché y errores; no conoce detalles del BCCR. |
+| Cliente | `index.html`, `styles.css`, `app.js` | `app.js` está ordenado por capas: textos, estado, datos, reglas, formato, render y eventos. |
+
+Si el BCCR cambia su API, solo se modifica `lib/bccr.js`.

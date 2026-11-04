@@ -45,7 +45,6 @@
         </a>
         <nav class="nav__links" aria-label="Secciones">
           <a href="#calculadora" data-i18n="nav_calc">Calculadora</a>
-          <a href="#comparador" data-i18n="nav_compare">Comparador</a>
           <a href="#historial" data-i18n="nav_history">Historial</a>
         </nav>
         <div class="nav__actions">
@@ -125,11 +124,6 @@
               </div>
               <p class="field__help" id="amountHelp" data-i18n="calc_help">Usa coma o punto para los decimales, por ejemplo 1.250,50.</p>
             </div>
-
-            <div class="field">
-              <label class="field__label" for="bankSelect" data-i18n="calc_entity">Entidad</label>
-              <select id="bankSelect" class="field__input"></select>
-            </div>
           </div>
 
           <div class="calc__result">
@@ -138,32 +132,6 @@
             <p class="calc__rule" id="calcRule"></p>
             <p class="sr-only" id="calcAnuncio" aria-live="polite" aria-atomic="true"></p>
           </div>
-        </div>
-      </section>
-
-      <section class="section container" id="comparador" aria-labelledby="compareTitle">
-        <h2 id="compareTitle" class="section__title" data-i18n="compare_title">Comparador de entidades</h2>
-        <p class="notice" role="note">
-          <i class="ph ph-info" aria-hidden="true"></i>
-          <span data-i18n="demo_notice">Estamos conectando cada banco. Por ahora solo publicamos la referencia oficial del BCCR: preferimos no mostrar montos que no podemos verificar.</span>
-        </p>
-
-        <div class="table-wrap">
-          <table class="table" id="ratesTable">
-            <thead>
-              <tr>
-                <th scope="col" data-i18n="col_entity">Entidad</th>
-                <th scope="col" class="num" data-i18n="buy">Compra</th>
-                <th scope="col" class="num" data-i18n="sell">Venta</th>
-                <th scope="col" class="num col-vs" data-i18n="col_vs">Venta vs BCCR</th>
-              </tr>
-            </thead>
-            <tbody id="ratesTableBody">
-              <tr class="table__skeleton"><td colspan="4"><span class="skeleton"></span></td></tr>
-              <tr class="table__skeleton"><td colspan="4"><span class="skeleton"></span></td></tr>
-              <tr class="table__skeleton"><td colspan="4"><span class="skeleton"></span></td></tr>
-            </tbody>
-          </table>
         </div>
       </section>
 
