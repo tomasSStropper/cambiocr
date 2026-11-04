@@ -1,3 +1,4 @@
-sifac/comun/entidades/TipoCambio.class
 sifac/servidor/datos/TipoCambioEnMemoria.class
+sifac/comun/entidades/TipoCambio.class
+sifac/servidor/logica/ServicioTipoCambio.class
 sifac/servidor/datos/RepositorioTipoCambio.class
