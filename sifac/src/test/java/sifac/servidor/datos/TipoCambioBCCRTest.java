@@ -1,36 +1,42 @@
 package sifac.servidor.datos;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import sifac.comun.entidades.TipoCambio;
 import sifac.servidor.logica.ServicioTipoCambio;
 
-/**
- * Fase 5: TipoCambioBCCR probado contra respuestas guardadas en archivos,
- * sin internet y sin token.
- */
+/** TipoCambioBCCR probado contra respuestas JSON guardadas: sin internet. */
 class TipoCambioBCCRTest {
 
     /** Igual que la real, pero "descarga" desde src/test/resources/bccr. */
     static class BccrDesdeArchivo extends TipoCambioBCCR {
+        final List<String> urlsPedidas = new ArrayList<>();
+
         BccrDesdeArchivo() {
-            super("prueba@ejemplo.com", "TOKEN-DE-PRUEBA");
+            super("TOKEN-DE-PRUEBA");
         }
 
         @Override
         protected String descargar(String url) {
-            if (!url.contains("FechaInicio=03%2F11%2F2026")) {
-                return leer("respuesta-vacia.xml");
+            urlsPedidas.add(url);
+            boolean incluyeEl3 = url.contains("fechaInicio=2026/11/0") || url.contains("fechaFin=2026/11/03");
+            if (!incluyeEl3 || url.contains("fechaInicio=2026/10/31")) {
+                return leer("serie-vacia.json");
             }
-            String indicador = url.contains("Indicador=317") ? "317" : "318";
-            return leer("respuesta-" + indicador + "-2026-11-03.xml");
+            return leer(url.contains("/317/") ? "serie-317.json" : "serie-318.json");
         }
 
         private static String leer(String nombre) {
@@ -42,38 +48,55 @@ class TipoCambioBCCRTest {
         }
     }
 
-    private final RepositorioTipoCambio repo = new BccrDesdeArchivo();
-
     @Test
-    void leeCompraYVentaDelXml() {
+    void leeCompraYVentaDelJson() {
+        BccrDesdeArchivo repo = new BccrDesdeArchivo();
         assertEquals("2026-11-03  compra 506.25  venta 513.40", repo.obtenerPorFecha("2026-11-03").toString());
     }
 
     @Test
-    void diaSinPublicacionDevuelveNull() {
-        assertNull(repo.obtenerPorFecha("2026-10-31"));
+    void elTokenNoViajaEnLaUrl() {
+        BccrDesdeArchivo repo = new BccrDesdeArchivo();
+        repo.obtenerPorFecha("2026-11-03");
+        assertEquals(2, repo.urlsPedidas.size());
+        for (String url : repo.urlsPedidas) {
+            assertTrue(url.startsWith(TipoCambioBCCR.URL_BASE));
+            assertFalse(url.contains("TOKEN-DE-PRUEBA"));
+        }
     }
 
     @Test
-    void respuestaSinValorDaNull() {
-        assertNull(TipoCambioBCCR.extraerValor("<string>&lt;Datos /&gt;</string>"));
+    void diaSinPublicacionDevuelveNull() {
+        assertNull(new BccrDesdeArchivo().obtenerPorFecha("2026-10-31"));
+    }
+
+    @Test
+    void estadoFalsoEsError() {
+        assertThrows(IllegalStateException.class,
+                () -> TipoCambioBCCR.parsearSerie("{\"estado\": false, \"mensaje\": \"Token invalido\"}"));
+    }
+
+    @Test
+    void sinTokenNoSePuedeCrear() {
+        assertThrows(IllegalArgumentException.class, () -> new TipoCambioBCCR(" "));
     }
 
     /** El punto de la actividad: la misma logica, otra fuente, cero cambios en el servicio. */
     @Test
     void elServicioNoNotaLaDiferencia() {
-        RepositorioTipoCambio soloEl3 = new RepositorioTipoCambio() {
+        BccrDesdeArchivo bccr = new BccrDesdeArchivo();
+        RepositorioTipoCambio fijoAl3 = new RepositorioTipoCambio() {
             @Override
-            public sifac.comun.entidades.TipoCambio obtenerPorFecha(String fecha) {
-                return repo.obtenerPorFecha(fecha);
+            public TipoCambio obtenerPorFecha(String fecha) {
+                return bccr.obtenerPorFecha(fecha);
             }
 
             @Override
-            public sifac.comun.entidades.TipoCambio obtenerMasReciente() {
-                return repo.obtenerPorFecha("2026-11-03"); // fija la fecha para que la prueba no dependa de hoy
+            public TipoCambio obtenerMasReciente() {
+                return bccr.obtenerPorFecha("2026-11-03"); // fija la fecha: la prueba no depende de hoy
             }
         };
-        ServicioTipoCambio servicio = new ServicioTipoCambio(soloEl3);
+        ServicioTipoCambio servicio = new ServicioTipoCambio(fijoAl3);
         assertEquals(61608.00, servicio.convertirAColonesParaPagar(120.00), 0.001);
         assertEquals(715.00, servicio.diferencialPorCada100(), 0.001);
     }

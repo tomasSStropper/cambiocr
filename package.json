@@ -4,7 +4,9 @@
   "private": true,
   "description": "Comparador de tipo de cambio del dólar en Costa Rica",
   "scripts": {
-    "check": "node --check app.js && node --check api/rates.js && node --check api/history.js && node --check api/alert.js"
+    "dev": "node scripts/dev-server.js",
+    "test": "node --test",
+    "check": "node --check app.js && node --check lib/bccr.js && node --check api/rates.js && node --check api/history.js && node --check api/alert.js"
   },
   "dependencies": {
     "nodemailer": "^6.10.1"

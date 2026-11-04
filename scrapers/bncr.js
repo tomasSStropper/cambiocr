@@ -1,5 +1,5 @@
 async function scrapeBncr() {
-  return { bank: 'BNCR', buy: 510.45, sell: 521.0, status: 'OK' };
+  return { bank: 'BNCR', buy: 510.45, sell: 521.0, status: 'DEMO', demo: true };
 }
 
 module.exports = { scrapeBncr };

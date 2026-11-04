@@ -1,0 +1,7 @@
+# Secretos: el token del BCCR vive aqui y NUNCA se sube
+.env
+.env.*
+!.env.example
+
+node_modules/
+sifac/target/

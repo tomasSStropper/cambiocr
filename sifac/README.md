@@ -9,7 +9,8 @@ Proyecto Java 17 + Maven, organizado en cuatro capas.
 cd sifac
 mvn test          # corre las verificaciones 2, 3, la factura de prueba y la fase 5
 mvn package       # genera target/sifac-tipo-cambio-1.0.0.jar
-java -jar target/sifac-tipo-cambio-1.0.0.jar
+java -jar target/sifac-tipo-cambio-1.0.0.jar          # datos en memoria (los de la actividad)
+java -jar target/sifac-tipo-cambio-1.0.0.jar --bccr   # BCCR real, lee la variable BCCR_TOKEN
 ```
 
 También se abre directo en NetBeans / IntelliJ / VS Code como proyecto Maven. La clase principal es `sifac.Aplicacion`.
@@ -49,6 +50,6 @@ Cada fase es un commit. Revíselos con `git log --oneline -- sifac` y `git show 
 | 2 | `TipoCambioEnMemoria` | `TipoCambioEnMemoriaTest` (Verificación 2) |
 | 3 | `ServicioTipoCambio` | `ServicioTipoCambioTest` (Verificación 3) |
 | 4 | `LineaFactura`, `Moneda`, `ServicioFacturacion`, `MenuConsola`, `Aplicacion` | `FacturaMixtaTest` |
-| 5 | `TipoCambioBCCR` + XML de prueba en `src/test/resources/bccr` | `TipoCambioBCCRTest` |
+| 5 | `TipoCambioBCCR` + JSON de prueba en `src/test/resources/bccr` | `TipoCambioBCCRTest` |
 
-> Los XML de `src/test/resources/bccr` están armados con el formato que publica el servicio del BCCR. Cuando tenga el token, reemplácelos por una respuesta real guardada.
+> `TipoCambioBCCR` usa la API SDDE del BCCR (sitio nuevo): `Authorization: Bearer <token>`, indicadores 317/318. Los JSON de `src/test/resources/bccr` imitan esa respuesta; cuando tenga una real, guárdela ahí y úsela en la prueba.
