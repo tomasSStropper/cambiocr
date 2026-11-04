@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: sifac.comun.entidades.TipoCambioTest
 -------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.052 s -- in sifac.comun.entidades.TipoCambioTest
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.009 s -- in sifac.comun.entidades.TipoCambioTest

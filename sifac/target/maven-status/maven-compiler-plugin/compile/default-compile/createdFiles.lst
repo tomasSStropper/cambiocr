@@ -1,2 +1,3 @@
 sifac/comun/entidades/TipoCambio.class
+sifac/servidor/datos/TipoCambioEnMemoria.class
 sifac/servidor/datos/RepositorioTipoCambio.class
