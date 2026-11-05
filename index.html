@@ -13,9 +13,17 @@
       property="og:description"
       content="Referencia oficial del BCCR, calculadora e historial del dólar en Costa Rica."
     />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="CambioYa: tipo de cambio oficial del dólar en Costa Rica" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#0b0d0c" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#f7f8f7" media="(prefers-color-scheme: light)" />
     <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -30,6 +38,8 @@
         const tema = localStorage.getItem('cambioya-tema');
         if (tema === 'light' || tema === 'dark') document.documentElement.dataset.theme = tema;
       } catch (e) {}
+      // Con JS activo, las secciones pueden esperar a entrar en pantalla para aparecer.
+      document.documentElement.classList.add('js');
     </script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.js" defer></script>
     <script src="app.js" defer></script>
@@ -60,8 +70,18 @@
     </header>
 
     <main id="contenido">
+      <div class="hero-wrap">
+      <div class="hero-bg" aria-hidden="true">
+        <span class="hero-bg__grid"></span>
+        <span class="hero-bg__glow"></span>
+        <span class="hero-bg__glow hero-bg__glow--2"></span>
+      </div>
       <section class="hero container" aria-labelledby="heroTitle">
         <div class="hero__copy reveal">
+          <p class="live-badge" id="liveBadge" data-state="loading">
+            <span class="live-badge__dot" aria-hidden="true"></span>
+            <span id="liveText" data-i18n="live_loading">Consultando al Banco Central…</span>
+          </p>
           <h1 id="heroTitle" class="hero__title" data-i18n="hero_title">El mejor cambio, sin buscar.</h1>
           <p class="hero__subtitle" data-i18n="hero_sub">
             El tipo de cambio oficial del Banco Central, una calculadora clara y el historial del dólar.
@@ -105,8 +125,35 @@
           </div>
         </article>
       </section>
+      </div>
 
-      <section class="section container calc" id="calculadora" aria-labelledby="calcTitle">
+      <section class="features container" aria-label="Por qué CambioYa" data-i18n-label="features_label">
+        <ul class="features__list">
+          <li class="feature reveal-on-scroll">
+            <span class="feature__icon" aria-hidden="true"><i class="ph ph-bank"></i></span>
+            <div>
+              <h3 class="feature__title" data-i18n="feat1_title">Fuente oficial</h3>
+              <p class="feature__text" data-i18n="feat1_text">Datos directos de la API del Banco Central de Costa Rica.</p>
+            </div>
+          </li>
+          <li class="feature reveal-on-scroll">
+            <span class="feature__icon" aria-hidden="true"><i class="ph ph-arrows-left-right"></i></span>
+            <div>
+              <h3 class="feature__title" data-i18n="feat2_title">En ambas direcciones</h3>
+              <p class="feature__text" data-i18n="feat2_text">Convierte de dólares a colones o de colones a dólares.</p>
+            </div>
+          </li>
+          <li class="feature reveal-on-scroll">
+            <span class="feature__icon" aria-hidden="true"><i class="ph ph-share-network"></i></span>
+            <div>
+              <h3 class="feature__title" data-i18n="feat3_title">Comparte tu cálculo</h3>
+              <p class="feature__text" data-i18n="feat3_text">Copia el resultado o envía un enlace con el monto listo.</p>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section container calc reveal-on-scroll" id="calculadora" aria-labelledby="calcTitle">
         <h2 id="calcTitle" class="section__title" data-i18n="calc_title">Calculadora</h2>
         <div class="calc__panel">
           <div class="calc__controls">
@@ -117,31 +164,52 @@
             </div>
 
             <div class="field">
-              <label class="field__label" for="amountInput" data-i18n="calc_label">Monto en dólares</label>
+              <div class="field__label-row">
+                <label class="field__label" for="amountInput" id="amountLabel">Monto en dólares</label>
+                <button class="swap-btn" id="swapBtn" type="button" aria-describedby="amountLabel">
+                  <i class="ph ph-arrows-down-up" aria-hidden="true"></i>
+                  <span id="swapText">Escribir en colones</span>
+                </button>
+              </div>
               <div class="field__input-wrap">
-                <span class="field__prefix mono" aria-hidden="true">$</span>
+                <span class="field__prefix mono" id="amountPrefix" aria-hidden="true">$</span>
                 <input id="amountInput" class="field__input mono" type="text" inputmode="decimal" autocomplete="off" value="100" aria-describedby="amountHelp" />
               </div>
               <p class="field__help" id="amountHelp" data-i18n="calc_help">Usa coma o punto para los decimales, por ejemplo 1.250,50.</p>
             </div>
+
+            <div class="chips" id="quickAmounts" role="group" aria-label="Montos rápidos" data-i18n-label="quick_label"></div>
           </div>
 
           <div class="calc__result">
             <p class="calc__result-label" id="calcLabel" data-i18n="calc_you_pay">Pagas</p>
             <p class="calc__result-value" id="calcResult">₡0,00</p>
             <p class="calc__rule" id="calcRule"></p>
+            <div class="calc__actions">
+              <button class="btn btn--soft btn--small" type="button" id="copyBtn">
+                <i class="ph ph-copy" aria-hidden="true"></i><span data-i18n="copy">Copiar</span>
+              </button>
+              <button class="btn btn--soft btn--small" type="button" id="shareBtn">
+                <i class="ph ph-share-network" aria-hidden="true"></i><span data-i18n="share">Compartir</span>
+              </button>
+            </div>
             <p class="sr-only" id="calcAnuncio" aria-live="polite" aria-atomic="true"></p>
           </div>
         </div>
       </section>
 
-      <section class="section container" id="historial" aria-labelledby="historyTitle">
+      <section class="section container reveal-on-scroll" id="historial" aria-labelledby="historyTitle">
         <div class="history__head">
           <h2 id="historyTitle" class="section__title" data-i18n="chart_title">Historial del BCCR</h2>
+          <div class="history__tools">
+          <button class="icon-btn icon-btn--label" type="button" id="csvBtn">
+            <i class="ph ph-download-simple" aria-hidden="true"></i><span data-i18n="csv">CSV</span>
+          </button>
           <div class="segmented segmented--small" role="radiogroup" aria-label="Rango" data-i18n-label="range_label">
             <button class="segmented__btn" type="button" role="radio" aria-checked="true" tabindex="0" data-range="7" data-i18n="chart_7">7 días</button>
             <button class="segmented__btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-range="15" data-i18n="chart_15">15 días</button>
             <button class="segmented__btn" type="button" role="radio" aria-checked="false" tabindex="-1" data-range="30" data-i18n="chart_30">30 días</button>
+          </div>
           </div>
         </div>
 
@@ -158,9 +226,10 @@
         </div>
       </section>
 
-      <section class="section container alerts" id="alertas" aria-labelledby="alertTitle">
+      <section class="section container alerts reveal-on-scroll" id="alertas" aria-labelledby="alertTitle">
         <div class="alerts__panel">
           <div>
+            <span class="alerts__icon" aria-hidden="true"><i class="ph ph-bell-ringing"></i></span>
             <h2 id="alertTitle" class="section__title" data-i18n="alert_title">Alertas del tipo de cambio</h2>
             <p class="alerts__sub" data-i18n="alert_sub">Las alertas automáticas están en construcción. Déjanos tu correo y te avisamos cuando estén listas.</p>
           </div>
@@ -175,6 +244,8 @@
         </div>
       </section>
     </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
     <footer class="footer">
       <div class="container footer__inner">

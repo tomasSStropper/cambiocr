@@ -1,0 +1,14 @@
+{
+  "name": "CambioYa: tipo de cambio en Costa Rica",
+  "short_name": "CambioYa",
+  "description": "Tipo de cambio oficial del BCCR, calculadora de dólares y colones e historial.",
+  "lang": "es-CR",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0d0c",
+  "theme_color": "#0f7a55",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

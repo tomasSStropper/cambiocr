@@ -24,10 +24,21 @@ const TIPOS = {
   '.js': 'text/javascript; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json'
 };
 
-const ESTATICOS = new Set(['/index.html', '/styles.css', '/app.js', '/favicon.svg']);
+const ESTATICOS = new Set([
+  '/index.html',
+  '/styles.css',
+  '/app.js',
+  '/favicon.svg',
+  '/og-image.png',
+  '/apple-touch-icon.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/site.webmanifest'
+]);
 
 function leerCuerpo(req) {
   return new Promise((resolve) => {

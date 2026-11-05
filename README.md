@@ -15,10 +15,17 @@ Tipo de cambio del dólar en Costa Rica con datos oficiales del Banco Central (B
 cp .env.example .env      # pegue su token en BCCR_TOKEN
 npm install
 npm run dev               # http://localhost:3000
-npm test                  # pruebas del cliente del BCCR (sin internet)
+npm test                  # pruebas del cliente del BCCR y de las reglas de app.js (sin internet)
 ```
 
 `.env` está en `.gitignore`: el token nunca se sube al repositorio.
+
+## Funciones del sitio
+
+- Referencia del BCCR con contadores animados, variación frente a ayer y sparkline de 7 días.
+- Calculadora en ambas direcciones (dólares → colones o colones → dólares), montos rápidos, copiar resultado y compartir un enlace con el cálculo (`?monto=250&modo=sell&moneda=usd`).
+- Historial de 7, 15 o 30 días con transición animada entre rangos y descarga en CSV.
+- Tema claro/oscuro, español/inglés y respeto a `prefers-reduced-motion`: sin animaciones si el sistema lo pide.
 
 ## Variables de entorno
 
@@ -43,5 +50,6 @@ En Vercel se configuran en *Project → Settings → Environment Variables* y re
 | Datos | `lib/bccr.js` | Único lugar que habla con el BCCR (URL, token Bearer, indicadores 317/318, forma del JSON). |
 | API | `api/*.js` | Expone los datos, define caché y errores; no conoce detalles del BCCR. |
 | Cliente | `index.html`, `styles.css`, `app.js` | `app.js` está ordenado por capas: textos, estado, datos, reglas, formato, render y eventos. |
+| Imágenes | `og-image.png`, `icon-*.png`, `apple-touch-icon.png`, `site.webmanifest` | Vista previa al compartir e íconos de la app instalable. Se regeneran con `node scripts/generar-imagenes.js` (requiere Playwright). |
 
 Si el BCCR cambia su API, solo se modifica `lib/bccr.js`.

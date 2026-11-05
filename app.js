@@ -25,7 +25,34 @@ const TEXTOS = {
     calc_title: 'Calculadora',
     calc_buy: 'Compro dólares',
     calc_sell: 'Vendo dólares',
-    calc_label: 'Monto en dólares',
+    calc_label_usd: 'Monto en dólares',
+    calc_label_crc: 'Monto en colones',
+    swap_to_crc: 'Escribir en colones',
+    swap_to_usd: 'Escribir en dólares',
+    calc_you_sell: 'Necesitas vender',
+    quick_label: 'Montos rápidos',
+    copy: 'Copiar',
+    share: 'Compartir',
+    copied: 'Resultado copiado',
+    link_copied: 'Enlace copiado',
+    copy_error: 'No se pudo copiar',
+    nothing_to_copy: 'Escribe un monto primero',
+    csv: 'CSV',
+    csv_label: 'Descargar historial en CSV',
+    csv_done: 'Historial descargado',
+    csv_empty: 'No hay historial para descargar',
+    csv_head: 'fecha,compra,venta',
+    live_loading: 'Consultando al Banco Central…',
+    live_ready: 'Datos del BCCR · actualizado {t}',
+    live_now: 'justo ahora',
+    live_error: 'Sin conexión con el BCCR',
+    features_label: 'Por qué CambioYa',
+    feat1_title: 'Fuente oficial',
+    feat1_text: 'Datos directos de la API del Banco Central de Costa Rica.',
+    feat2_title: 'En ambas direcciones',
+    feat2_text: 'Convierte de dólares a colones o de colones a dólares.',
+    feat3_title: 'Comparte tu cálculo',
+    feat3_text: 'Copia el resultado o envía un enlace con el monto listo.',
     calc_help: 'Usa coma o punto para los decimales, por ejemplo 1.250,50.',
     calc_invalid: 'Escribe un monto válido, por ejemplo 120,50.',
     calc_none: 'Sin datos',
@@ -77,7 +104,34 @@ const TEXTOS = {
     calc_title: 'Calculator',
     calc_buy: "I'm buying dollars",
     calc_sell: "I'm selling dollars",
-    calc_label: 'Amount in dollars',
+    calc_label_usd: 'Amount in dollars',
+    calc_label_crc: 'Amount in colones',
+    swap_to_crc: 'Type in colones',
+    swap_to_usd: 'Type in dollars',
+    calc_you_sell: 'You need to sell',
+    quick_label: 'Quick amounts',
+    copy: 'Copy',
+    share: 'Share',
+    copied: 'Result copied',
+    link_copied: 'Link copied',
+    copy_error: 'Could not copy',
+    nothing_to_copy: 'Enter an amount first',
+    csv: 'CSV',
+    csv_label: 'Download history as CSV',
+    csv_done: 'History downloaded',
+    csv_empty: 'There is no history to download',
+    csv_head: 'date,buy,sell',
+    live_loading: 'Checking the Central Bank…',
+    live_ready: 'BCCR data · updated {t}',
+    live_now: 'just now',
+    live_error: 'No connection to the BCCR',
+    features_label: 'Why CambioYa',
+    feat1_title: 'Official source',
+    feat1_text: 'Data straight from the Central Bank of Costa Rica API.',
+    feat2_title: 'Both directions',
+    feat2_text: 'Convert dollars to colones or colones to dollars.',
+    feat3_title: 'Share your result',
+    feat3_text: 'Copy the result or send a link with the amount ready.',
     calc_help: 'Use a dot or a comma for decimals, for example 1,250.50.',
     calc_invalid: 'Enter a valid amount, for example 120.50.',
     calc_none: 'No data',
@@ -117,16 +171,25 @@ const TEXTOS = {
 const estado = {
   idioma: 'es',
   modo: 'buy', // buy = compro dolares, sell = vendo dolares
+  moneda: 'usd', // moneda en la que el usuario escribe el monto: usd | crc
   rango: 7,
   bccr: null, // { buy, sell, date } o null si no hay dato
   historial: [], // [{ date, buy, sell }]
+  actualizadoEn: null, // momento (ms) de la ultima consulta exitosa
   grafico: null,
+  claveGrafico: '', // tema|idioma|ancho: si cambia, el grafico se reconstruye
   pedidoHistorial: 0, // para descartar respuestas viejas si el usuario cambia de rango rapido
   ocupado: false
 };
 
+const MONTOS_RAPIDOS = {
+  usd: [20, 50, 100, 500, 1000],
+  crc: [10000, 25000, 50000, 100000, 500000]
+};
+
 const t = (clave) => TEXTOS[estado.idioma][clave] ?? clave;
 const $ = (id) => document.getElementById(id);
+const sinMovimiento = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ============ 3. Datos ============ */
 async function pedirJson(url, opciones) {
@@ -158,8 +221,25 @@ function tasaPara(modo, tipoCambio) {
   return modo === 'buy' ? tipoCambio.sell : tipoCambio.buy;
 }
 
+const redondear = (n) => Math.round(n * 100) / 100;
+
 function convertir(usd, tasa) {
-  return Math.round(usd * tasa * 100) / 100;
+  return redondear(usd * tasa);
+}
+
+// Conversion en cualquier direccion. La tasa depende solo de la operacion (compro/vendo),
+// no de la moneda en que se escribe: asi ida y vuelta dan el mismo resultado.
+function calcular(modo, moneda, monto, tipoCambio) {
+  const tasa = tasaPara(modo, tipoCambio);
+  return moneda === 'usd'
+    ? { valor: convertir(monto, tasa), moneda: 'crc', tasa }
+    : { valor: redondear(monto / tasa), moneda: 'usd', tasa };
+}
+
+// Que significa el resultado segun la operacion y la moneda de entrada.
+function etiquetaResultado(modo, moneda) {
+  if (modo === 'buy') return moneda === 'usd' ? 'calc_you_pay' : 'calc_you_get';
+  return moneda === 'usd' ? 'calc_you_get' : 'calc_you_sell';
 }
 
 // Acepta formatos de Costa Rica y de EE. UU.: 1.000 | 1,000 | 1.250,50 | 1,250.50 | 120,5.
@@ -173,13 +253,30 @@ function leerMonto(texto) {
   return Number.isFinite(n) ? n : null;
 }
 
+// Lee ?monto=&modo=&moneda= de un enlace compartido. Ignora valores no validos.
+function leerEnlace(busqueda) {
+  const p = new URLSearchParams(busqueda);
+  const r = {};
+  if (['buy', 'sell'].includes(p.get('modo'))) r.modo = p.get('modo');
+  if (['usd', 'crc'].includes(p.get('moneda'))) r.moneda = p.get('moneda');
+  const monto = p.has('monto') ? leerMonto(p.get('monto')) : null;
+  if (monto !== null && monto > 0) r.monto = monto;
+  return r;
+}
+
+function historialCsv(puntos, encabezado) {
+  return [encabezado, ...puntos.map((p) => `${p.date},${p.buy.toFixed(2)},${p.sell.toFixed(2)}`)].join('\n') + '\n';
+}
+
 /* ============ 5. Formato ============ */
 const locale = () => (estado.idioma === 'es' ? 'es-CR' : 'en-US');
-const colones = (n) =>
-  '₡' + new Intl.NumberFormat(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-const conSigno = (n) =>
-  (n > 0 ? '+' : n < 0 ? '-' : '') +
-  new Intl.NumberFormat(locale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(n));
+const numero = (n, decimales = 2) =>
+  new Intl.NumberFormat(locale(), { minimumFractionDigits: decimales, maximumFractionDigits: decimales }).format(n);
+const colones = (n) => '₡' + numero(n);
+const dolares = (n) => '$' + numero(n);
+const enMoneda = (moneda, n) => (moneda === 'usd' ? dolares(n) : colones(n));
+const conSigno = (n) => (n > 0 ? '+' : n < 0 ? '-' : '') + numero(Math.abs(n));
+const coloneConSigno = (n) => (n > 0 ? '+' : n < 0 ? '-' : '') + colones(Math.abs(n));
 const fechaLarga = (iso) =>
   new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
     new Date(`${iso}T00:00:00Z`)
@@ -188,12 +285,46 @@ const fechaCorta = (iso) =>
   new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
     new Date(`${iso}T00:00:00Z`)
   );
+function haceCuanto(ms) {
+  const minutos = Math.floor((Date.now() - ms) / 60000);
+  if (minutos < 1) return t('live_now');
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: 'auto' });
+  return minutos < 60 ? rtf.format(-minutos, 'minute') : rtf.format(-Math.floor(minutos / 60), 'hour');
+}
+// Color hex (#rrggbb) con transparencia, para los degradados del canvas.
+function conAlfa(hex, alfa) {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
+  if (!m) return hex;
+  return `rgba(${parseInt(m[1], 16)}, ${parseInt(m[2], 16)}, ${parseInt(m[3], 16)}, ${alfa})`;
+}
 
 /* ============ 6. Render ============ */
-function marcarActualizado(el) {
-  el.classList.remove('is-updated');
+function marcarActualizado(el, clase = 'is-updated') {
+  el.classList.remove(clase);
   void el.offsetWidth; // reinicia la animacion
-  el.classList.add('is-updated');
+  el.classList.add(clase);
+}
+
+// Contador animado: el numero "corre" desde el valor anterior hasta el nuevo.
+// Con movimiento reducido (o sin valor anterior y sin "entrada") se pinta directo.
+const cuadrosActivos = new WeakMap();
+function animarNumero(el, hasta, formato, { duracion = 650, entrada = false } = {}) {
+  let desde = Number(el.dataset.valor);
+  el.dataset.valor = String(hasta);
+  cancelAnimationFrame(cuadrosActivos.get(el));
+  if (!Number.isFinite(desde) && entrada) desde = hasta * 0.97;
+  if (sinMovimiento() || !Number.isFinite(desde) || desde === hasta) {
+    el.textContent = formato(hasta);
+    return;
+  }
+  const inicio = performance.now();
+  const paso = (ahora) => {
+    const p = Math.min(1, (ahora - inicio) / duracion);
+    const suave = 1 - Math.pow(1 - p, 3); // ease-out cubico
+    el.textContent = formato(p === 1 ? hasta : desde + (hasta - desde) * suave);
+    if (p < 1) cuadrosActivos.set(el, requestAnimationFrame(paso));
+  };
+  cuadrosActivos.set(el, requestAnimationFrame(paso));
 }
 
 function crear(tag, opciones = {}, hijos = []) {
@@ -211,6 +342,15 @@ function icono(nombre) {
   return i;
 }
 
+let temporizadorToast;
+function avisar(texto, nombreIcono = 'check-circle') {
+  const toast = $('toast');
+  toast.replaceChildren(icono(nombreIcono), document.createTextNode(texto));
+  toast.classList.add('is-visible');
+  clearTimeout(temporizadorToast);
+  temporizadorToast = setTimeout(() => toast.classList.remove('is-visible'), 2600);
+}
+
 function renderTextos() {
   document.documentElement.lang = estado.idioma;
   document.querySelectorAll('[data-i18n]').forEach((el) => {
@@ -225,6 +365,25 @@ function renderTextos() {
   $('langToggle').setAttribute('aria-label', t('lang'));
   $('themeToggle').setAttribute('aria-label', t('theme'));
   $('refreshBtn').setAttribute('aria-label', t('refresh'));
+  $('csvBtn').setAttribute('aria-label', t('csv_label'));
+  $('csvBtn').title = t('csv_label');
+  renderEnVivo();
+  // Los textos cambian de ancho: la pastilla de los selectores se vuelve a medir.
+  document.querySelectorAll('.segmented').forEach(moverPastilla);
+}
+
+function renderEnVivo() {
+  const insignia = $('liveBadge');
+  if (estado.actualizadoEn === null) {
+    insignia.dataset.state = 'loading';
+    $('liveText').textContent = t('live_loading');
+  } else if (!estado.bccr) {
+    insignia.dataset.state = 'error';
+    $('liveText').textContent = t('live_error');
+  } else {
+    insignia.dataset.state = 'ready';
+    $('liveText').textContent = t('live_ready').replace('{t}', haceCuanto(estado.actualizadoEn));
+  }
 }
 
 function renderDelta(el, actual, anterior) {
@@ -236,33 +395,58 @@ function renderDelta(el, actual, anterior) {
   el.append(crear('small', { text: t('vs_prev') }));
 }
 
-function renderSparkline() {
+// Sparkline en SVG con el ancho real del contenedor (sin deformar el punto final):
+// area con degradado, linea que se dibuja y un punto que late en el ultimo dato.
+function renderSparkline({ animar = true } = {}) {
   const contenedor = $('refSpark');
   contenedor.replaceChildren();
+  contenedor.classList.toggle('is-static', !animar);
   const puntos = estado.historial.slice(-7);
-  if (puntos.length < 2) return;
+  const ancho = Math.round(contenedor.clientWidth);
+  if (puntos.length < 2 || !ancho) return;
+  contenedor.dataset.ancho = String(ancho);
 
   const valores = puntos.map((p) => p.sell);
   const min = Math.min(...valores);
   const max = Math.max(...valores);
-  const ancho = 300;
   const alto = 56;
-  const x = (i) => (i / (puntos.length - 1)) * ancho;
-  const y = (v) => (max === min ? alto / 2 : alto - 4 - ((v - min) / (max - min)) * (alto - 8));
+  const margen = 6;
+  const x = (i) => (i / (puntos.length - 1)) * (ancho - margen);
+  const y = (v) => (max === min ? alto / 2 : alto - margen - ((v - min) / (max - min)) * (alto - margen * 2));
+  const coords = valores.map((v, i) => [x(i), y(v)]);
 
   const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${ancho} ${alto}`);
-  svg.setAttribute('preserveAspectRatio', 'none');
-  const linea = document.createElementNS(ns, 'polyline');
-  linea.setAttribute('points', valores.map((v, i) => `${x(i)},${y(v)}`).join(' '));
-  linea.setAttribute('fill', 'none');
-  linea.setAttribute('stroke', 'var(--accent)');
-  linea.setAttribute('stroke-width', '2');
-  linea.setAttribute('vector-effect', 'non-scaling-stroke');
-  linea.setAttribute('stroke-linejoin', 'round');
-  svg.append(linea);
+  const nodo = (tag, attrs) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    return el;
+  };
+  const svg = nodo('svg', { viewBox: `0 0 ${ancho} ${alto}`, width: ancho, height: alto });
+  const degradado = nodo('linearGradient', { id: 'sparkRelleno', x1: '0', y1: '0', x2: '0', y2: '1' });
+  degradado.append(
+    nodo('stop', { offset: '0%', style: 'stop-color: var(--accent); stop-opacity: 0.28' }),
+    nodo('stop', { offset: '100%', style: 'stop-color: var(--accent); stop-opacity: 0' })
+  );
+  const defs = nodo('defs', {});
+  defs.append(degradado);
+
+  const trazo = coords.map(([cx, cy]) => `${cx.toFixed(1)},${cy.toFixed(1)}`).join(' L');
+  const [ux, uy] = coords.at(-1);
+  const area = nodo('path', { class: 'spark-area', d: `M${trazo} L${ux},${alto} L0,${alto} Z`, fill: 'url(#sparkRelleno)' });
+  const linea = nodo('path', {
+    class: 'spark-line',
+    d: `M${trazo}`,
+    fill: 'none',
+    stroke: 'var(--accent)',
+    'stroke-width': '2',
+    'stroke-linejoin': 'round',
+    'stroke-linecap': 'round'
+  });
+  const halo = nodo('circle', { class: 'spark-halo', cx: ux, cy: uy, r: '4' });
+  const punto = nodo('circle', { class: 'spark-dot', cx: ux, cy: uy, r: '3.5' });
+  svg.append(defs, area, linea, halo, punto);
   contenedor.append(svg);
+  linea.style.setProperty('--len', String(Math.ceil(linea.getTotalLength())));
 }
 
 function renderReferencia() {
@@ -276,26 +460,52 @@ function renderReferencia() {
     return;
   }
 
+  const primeraVez = cuerpo.dataset.state !== 'ready';
   cuerpo.hidden = false;
   error.hidden = true;
   cuerpo.dataset.state = 'ready';
 
   const { buy, sell, date } = estado.bccr;
   $('refDate').textContent = fechaLarga(date);
-  $('refBuy').textContent = colones(buy);
-  $('refSell').textContent = colones(sell);
-  $('refSpread').textContent = colones(sell - buy);
+  animarNumero($('refBuy'), buy, colones, { duracion: 900, entrada: true });
+  animarNumero($('refSell'), sell, colones, { duracion: 900, entrada: true });
+  animarNumero($('refSpread'), sell - buy, colones, { duracion: 900 });
 
   const anterior = estado.historial.filter((p) => p.date < date).at(-1);
   renderDelta($('refBuyDelta'), buy, anterior?.buy);
   renderDelta($('refSellDelta'), sell, anterior?.sell);
   renderSparkline();
-  marcarActualizado(cuerpo);
+  if (!primeraVez) marcarActualizado(cuerpo);
 }
 
-function renderCalculadora() {
+function renderMontosRapidos(montoActual) {
+  const contenedor = $('quickAmounts');
+  const montos = MONTOS_RAPIDOS[estado.moneda];
+  const claves = montos.join(',') + estado.idioma;
+  if (contenedor.dataset.claves !== claves) {
+    contenedor.dataset.claves = claves;
+    contenedor.replaceChildren(
+      ...montos.map((m) => {
+        const b = crear('button', { className: 'chip', text: (estado.moneda === 'usd' ? '$' : '₡') + numero(m, 0) });
+        b.type = 'button';
+        b.dataset.monto = String(m);
+        return b;
+      })
+    );
+  }
+  contenedor.querySelectorAll('.chip').forEach((b) => {
+    b.setAttribute('aria-pressed', String(Number(b.dataset.monto) === montoActual));
+  });
+}
+
+function renderCalculadora({ resaltar = false } = {}) {
   marcarRadios('[data-mode]', (b) => b.dataset.mode === estado.modo);
-  $('calcLabel').textContent = t(estado.modo === 'buy' ? 'calc_you_pay' : 'calc_you_get');
+  const enDolares = estado.moneda === 'usd';
+  $('amountLabel').textContent = t(enDolares ? 'calc_label_usd' : 'calc_label_crc');
+  $('amountPrefix').textContent = enDolares ? '$' : '₡';
+  $('swapText').textContent = t(enDolares ? 'swap_to_crc' : 'swap_to_usd');
+  $('swapBtn').classList.toggle('is-flipped', !enDolares);
+  $('calcLabel').textContent = t(etiquetaResultado(estado.modo, estado.moneda));
 
   const input = $('amountInput');
   const ayuda = $('amountHelp');
@@ -304,19 +514,26 @@ function renderCalculadora() {
   input.setAttribute('aria-invalid', String(!valido));
   ayuda.textContent = t(valido ? 'calc_help' : 'calc_invalid');
   ayuda.classList.toggle('is-error', !valido);
+  renderMontosRapidos(monto);
 
   const resultado = $('calcResult');
   if (!estado.bccr || !valido) {
     resultado.textContent = t('calc_none');
+    delete resultado.dataset.valor;
     resultado.classList.add('is-empty');
     $('calcRule').textContent = estado.bccr ? '' : t('calc_no_data');
     return;
   }
-  const tasa = tasaPara(estado.modo, estado.bccr);
-  resultado.textContent = colones(convertir(monto, tasa));
+  const { valor, moneda, tasa } = calcular(estado.modo, estado.moneda, monto, estado.bccr);
+  const formato = (n) => enMoneda(moneda, n);
+  // Si cambio la moneda del resultado, no tiene sentido "contar" desde la otra moneda.
+  if (resultado.dataset.moneda !== moneda) delete resultado.dataset.valor;
+  resultado.dataset.moneda = moneda;
   resultado.classList.remove('is-empty');
+  animarNumero(resultado, valor, formato, { duracion: 420 });
+  if (resaltar && !sinMovimiento()) marcarActualizado(resultado, 'is-pop');
   $('calcRule').textContent = t(estado.modo === 'buy' ? 'calc_rule_buy' : 'calc_rule_sell').replace('{tasa}', colones(tasa));
-  anunciarResultado(`${$('calcLabel').textContent} ${resultado.textContent}`);
+  anunciarResultado(`${$('calcLabel').textContent} ${formato(valor)}`);
 }
 
 // El lector de pantalla escucha el resultado cuando el usuario deja de escribir, no en cada tecla.
@@ -330,11 +547,23 @@ function anunciarResultado(texto) {
 
 // Radios con tabindex "roving": solo el marcado entra en el orden de Tab.
 function marcarRadios(selector, esMarcado) {
+  const grupos = new Set();
   document.querySelectorAll(selector).forEach((b) => {
     const marcado = esMarcado(b);
     b.setAttribute('aria-checked', String(marcado));
     b.tabIndex = marcado ? 0 : -1;
+    grupos.add(b.closest('.segmented'));
   });
+  grupos.forEach(moverPastilla);
+}
+
+// Coloca la pastilla deslizante del selector bajo la opcion marcada.
+function moverPastilla(grupo) {
+  const marcado = grupo && grupo.querySelector('[aria-checked="true"]');
+  if (!marcado || !marcado.offsetWidth) return;
+  grupo.style.setProperty('--thumb-x', `${marcado.offsetLeft}px`);
+  grupo.style.setProperty('--thumb-w', `${marcado.offsetWidth}px`);
+  grupo.classList.add('has-thumb');
 }
 
 function colorToken(nombre) {
@@ -344,15 +573,38 @@ function colorToken(nombre) {
 function renderEstadisticas() {
   const puntos = estado.historial;
   if (!puntos.length) {
-    ['statMin', 'statMax', 'statChange'].forEach((id) => ($(id).textContent = '-'));
+    ['statMin', 'statMax', 'statChange'].forEach((id) => {
+      $(id).textContent = '-';
+      delete $(id).dataset.valor;
+    });
     return;
   }
   const ventas = puntos.map((p) => p.sell);
-  $('statMin').textContent = colones(Math.min(...ventas));
-  $('statMax').textContent = colones(Math.max(...ventas));
-  const cambio = ventas.at(-1) - ventas[0];
-  $('statChange').textContent = (cambio > 0 ? '+' : cambio < 0 ? '-' : '') + colones(Math.abs(cambio));
+  animarNumero($('statMin'), Math.min(...ventas), colones, { entrada: true });
+  animarNumero($('statMax'), Math.max(...ventas), colones, { entrada: true });
+  animarNumero($('statChange'), ventas.at(-1) - ventas[0], coloneConSigno);
 }
+
+// Linea vertical punteada que sigue al cursor en el grafico.
+const lineaGuia = {
+  id: 'lineaGuia',
+  afterDatasetsDraw(chart, _args, opciones) {
+    const activos = chart.tooltip?.getActiveElements?.() || [];
+    if (!activos.length) return;
+    const x = activos[0].element.x;
+    const { top, bottom } = chart.chartArea;
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.strokeStyle = opciones.color;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(x, top);
+    ctx.lineTo(x, bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
 
 function renderGrafico() {
   const wrap = $('historyChartWrap');
@@ -373,35 +625,79 @@ function renderGrafico() {
   vacio.hidden = true;
   if (typeof Chart === 'undefined') return; // la libreria aun no carga
 
+  const etiquetas = estado.historial.map((p) => fechaCorta(p.date));
+  const ventas = estado.historial.map((p) => p.sell);
+  const compras = estado.historial.map((p) => p.buy);
+  const movil = window.innerWidth < 640;
+  const clave = `${temaEfectivo()}|${estado.idioma}|${movil}`;
+
+  // Mismo tema e idioma: se actualizan los datos y Chart.js anima la transicion de la linea.
+  if (estado.grafico && estado.claveGrafico === clave) {
+    estado.grafico.data.labels = etiquetas;
+    estado.grafico.data.datasets[0].data = ventas;
+    estado.grafico.data.datasets[1].data = compras;
+    estado.grafico.update();
+    return;
+  }
+
   const acento = colorToken('--accent');
   const tenue = colorToken('--muted');
   const borde = colorToken('--border');
+  const texto = colorToken('--text');
+  const fondo = colorToken('--bg');
+  const superficie = colorToken('--surface');
   const fuente = colorToken('--font-mono') || 'monospace';
+  const relleno = ({ chart }) => {
+    const area = chart.chartArea;
+    if (!area) return conAlfa(acento, 0.1);
+    const g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);
+    g.addColorStop(0, conAlfa(acento, 0.22));
+    g.addColorStop(1, conAlfa(acento, 0));
+    return g;
+  };
+  const puntoHover = { pointRadius: 0, pointHoverRadius: 5, pointHoverBorderWidth: 2, pointHoverBorderColor: superficie };
   const datos = {
-    labels: estado.historial.map((p) => fechaCorta(p.date)),
+    labels: etiquetas,
     datasets: [
-      { label: t('sell'), data: estado.historial.map((p) => p.sell), borderColor: acento, backgroundColor: acento, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
-      { label: t('buy'), data: estado.historial.map((p) => p.buy), borderColor: tenue, backgroundColor: tenue, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 1.5, borderDash: [4, 4] }
+      { label: t('sell'), data: ventas, borderColor: acento, backgroundColor: relleno, pointHoverBackgroundColor: acento, fill: 'start', tension: 0.35, borderWidth: 2.25, ...puntoHover },
+      { label: t('buy'), data: compras, borderColor: tenue, backgroundColor: tenue, pointHoverBackgroundColor: tenue, fill: false, tension: 0.35, borderWidth: 1.5, borderDash: [4, 4], ...puntoHover }
     ]
   };
 
   if (estado.grafico) estado.grafico.destroy();
-  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  estado.claveGrafico = clave;
   estado.grafico = new Chart($('historyChart'), {
     type: 'line',
     data: datos,
+    plugins: [lineaGuia],
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: reducido ? false : { duration: 500 },
+      animation: sinMovimiento() ? false : { duration: 700, easing: 'easeOutQuart' },
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { position: 'bottom', align: 'start', labels: { color: tenue, boxWidth: 12, boxHeight: 2, font: { family: fuente } } },
-        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${colones(c.parsed.y)}` } }
+        lineaGuia: { color: tenue },
+        legend: {
+          position: 'bottom',
+          align: 'start',
+          labels: { color: tenue, boxWidth: 12, boxHeight: 2, font: { family: fuente }, generateLabels: (chart) => chart.data.datasets.map((d, i) => ({ text: d.label, fillStyle: d.borderColor, strokeStyle: d.borderColor, lineWidth: 0, fontColor: tenue, hidden: !chart.isDatasetVisible(i), datasetIndex: i })) }
+        },
+        tooltip: {
+          backgroundColor: texto,
+          titleColor: fondo,
+          bodyColor: fondo,
+          padding: 10,
+          cornerRadius: 8,
+          boxPadding: 4,
+          usePointStyle: true,
+          titleFont: { family: fuente },
+          bodyFont: { family: fuente },
+          callbacks: { label: (c) => `${c.dataset.label}: ${colones(c.parsed.y)}` }
+        }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: tenue, maxRotation: 0, autoSkip: true, maxTicksLimit: window.innerWidth < 640 ? 4 : 8, font: { family: fuente } } },
-        y: { grid: { color: borde }, border: { display: false }, ticks: { color: tenue, maxTicksLimit: 5, font: { family: fuente }, callback: (v) => '₡' + new Intl.NumberFormat(locale(), { maximumFractionDigits: 0 }).format(v) } }
+        x: { grid: { display: false }, ticks: { color: tenue, maxRotation: 0, autoSkip: true, maxTicksLimit: movil ? 4 : 8, font: { family: fuente } } },
+        y: { grid: { color: borde }, border: { display: false }, ticks: { color: tenue, maxTicksLimit: 5, font: { family: fuente }, callback: (v) => '₡' + numero(v, 0) } }
       }
     }
   });
@@ -447,6 +743,7 @@ async function actualizar() {
   botones.forEach((b) => b.setAttribute('aria-busy', 'true'));
   try {
     await Promise.all([cargarTasas(), cargarHistorial()]);
+    estado.actualizadoEn = Date.now();
     renderTodo();
   } finally {
     botones.forEach((b) => b.removeAttribute('aria-busy'));
@@ -463,6 +760,90 @@ function temaEfectivo() {
 function renderIconoTema() {
   const i = $('themeToggle').querySelector('i');
   i.className = `ph ${temaEfectivo() === 'dark' ? 'ph-sun' : 'ph-moon'}`;
+}
+
+async function copiarTexto(texto) {
+  try {
+    await navigator.clipboard.writeText(texto);
+    return true;
+  } catch {
+    // Respaldo para navegadores sin la API del portapapeles (o sin HTTPS).
+    const area = crear('textarea');
+    area.value = texto;
+    area.setAttribute('readonly', '');
+    area.style.cssText = 'position:fixed;opacity:0;pointer-events:none';
+    document.body.append(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch {}
+    area.remove();
+    return ok;
+  }
+}
+
+// Texto y enlace del calculo actual, o null si no hay un resultado valido.
+function calculoActual() {
+  const monto = leerMonto($('amountInput').value);
+  if (!estado.bccr || monto === null || monto <= 0) return null;
+  const { valor, moneda } = calcular(estado.modo, estado.moneda, monto, estado.bccr);
+  const url = new URL(window.location.href);
+  url.search = new URLSearchParams({ monto: String(monto), modo: estado.modo, moneda: estado.moneda }).toString();
+  url.hash = 'calculadora';
+  const texto = `${enMoneda(estado.moneda, monto)} → ${enMoneda(moneda, valor)} (BCCR, ${fechaLarga(estado.bccr.date)})`;
+  return { texto, url: url.toString() };
+}
+
+function descargarCsv() {
+  if (!estado.historial.length) {
+    avisar(t('csv_empty'), 'warning-circle');
+    return;
+  }
+  const blob = new Blob([historialCsv(estado.historial, t('csv_head'))], { type: 'text/csv;charset=utf-8' });
+  const enlace = crear('a');
+  enlace.href = URL.createObjectURL(blob);
+  enlace.download = `cambioya-historial-${estado.rango}d.csv`;
+  document.body.append(enlace);
+  enlace.click();
+  enlace.remove();
+  setTimeout(() => URL.revokeObjectURL(enlace.href), 1000);
+  avisar(t('csv_done'), 'download-simple');
+}
+
+// Las secciones aparecen suavemente la primera vez que entran en pantalla.
+function activarAparicion() {
+  const elementos = document.querySelectorAll('.reveal-on-scroll');
+  document.querySelectorAll('.features .reveal-on-scroll').forEach((el, i) => el.style.setProperty('--delay', `${i * 90}ms`));
+  if (!('IntersectionObserver' in window)) {
+    elementos.forEach((el) => el.classList.add('is-visible'));
+    return;
+  }
+  const observador = new IntersectionObserver(
+    (entradas) =>
+      entradas.forEach((e) => {
+        if (!e.isIntersecting) return;
+        e.target.classList.add('is-visible');
+        observador.unobserve(e.target);
+      }),
+    { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+  );
+  elementos.forEach((el) => observador.observe(el));
+}
+
+// Resalta en el menu la seccion que se esta viendo.
+function activarMenuActivo() {
+  if (!('IntersectionObserver' in window)) return;
+  const enlaces = [...document.querySelectorAll('.nav__links a')];
+  const observador = new IntersectionObserver(
+    (entradas) =>
+      entradas.forEach((e) => {
+        if (!e.isIntersecting) return;
+        enlaces.forEach((a) => a.setAttribute('aria-current', String(a.getAttribute('href') === `#${e.target.id}`)));
+      }),
+    { rootMargin: '-45% 0px -50% 0px' }
+  );
+  document.querySelectorAll('main > section[id], main .hero').forEach((s) => observador.observe(s));
 }
 
 function enlazarEventos() {
@@ -490,8 +871,9 @@ function enlazarEventos() {
 
   document.querySelectorAll('[data-mode]').forEach((b) =>
     b.addEventListener('click', () => {
+      if (estado.modo === b.dataset.mode) return;
       estado.modo = b.dataset.mode;
-      renderCalculadora();
+      renderCalculadora({ resaltar: true });
     })
   );
   // Patron de teclado de radiogroup: flechas mueven y seleccionan.
@@ -508,10 +890,51 @@ function enlazarEventos() {
     })
   );
 
-  $('amountInput').addEventListener('input', renderCalculadora);
+  $('amountInput').addEventListener('input', () => renderCalculadora());
+
+  // Intercambiar: el resultado actual pasa a ser el monto en la otra moneda.
+  $('swapBtn').addEventListener('click', () => {
+    const input = $('amountInput');
+    const monto = leerMonto(input.value);
+    if (estado.bccr && monto) input.value = String(calcular(estado.modo, estado.moneda, monto, estado.bccr).valor);
+    estado.moneda = estado.moneda === 'usd' ? 'crc' : 'usd';
+    renderCalculadora({ resaltar: true });
+  });
+
+  $('quickAmounts').addEventListener('click', (e) => {
+    const chip = e.target.closest('.chip');
+    if (!chip) return;
+    $('amountInput').value = chip.dataset.monto;
+    renderCalculadora({ resaltar: true });
+  });
+
+  $('copyBtn').addEventListener('click', async () => {
+    const calculo = calculoActual();
+    if (!calculo) return avisar(t('nothing_to_copy'), 'warning-circle');
+    const ok = await copiarTexto(calculo.texto);
+    avisar(t(ok ? 'copied' : 'copy_error'), ok ? 'check-circle' : 'warning-circle');
+  });
+
+  $('shareBtn').addEventListener('click', async () => {
+    const calculo = calculoActual();
+    if (!calculo) return avisar(t('nothing_to_copy'), 'warning-circle');
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'CambioYa', text: calculo.texto, url: calculo.url });
+        return;
+      } catch (error) {
+        if (error && error.name === 'AbortError') return; // el usuario cerro el menu
+      }
+    }
+    const ok = await copiarTexto(calculo.url);
+    avisar(t(ok ? 'link_copied' : 'copy_error'), ok ? 'link' : 'warning-circle');
+  });
+
+  $('csvBtn').addEventListener('click', descargarCsv);
 
   document.querySelectorAll('[data-range]').forEach((b) =>
     b.addEventListener('click', async () => {
+      if (estado.rango === Number(b.dataset.range)) return;
       estado.rango = Number(b.dataset.range);
       const wrap = $('historyChartWrap');
       wrap.dataset.state = 'loading';
@@ -523,6 +946,17 @@ function enlazarEventos() {
       renderGrafico();
     })
   );
+
+  // La pastilla se vuelve a medir si cambia el tamano (fuentes que cargan, rotacion del telefono).
+  if ('ResizeObserver' in window) {
+    const observador = new ResizeObserver((entradas) => entradas.forEach((e) => moverPastilla(e.target)));
+    document.querySelectorAll('.segmented').forEach((g) => observador.observe(g));
+    // El sparkline se redibuja sin animacion si cambia el ancho de la tarjeta.
+    new ResizeObserver(() => {
+      const spark = $('refSpark');
+      if (spark.dataset.ancho && Number(spark.dataset.ancho) !== Math.round(spark.clientWidth)) renderSparkline({ animar: false });
+    }).observe($('refSpark'));
+  }
 
   $('alertForm').addEventListener('submit', async (evento) => {
     evento.preventDefault();
@@ -554,12 +988,30 @@ function enlazarEventos() {
   });
 }
 
-async function iniciar() {
-  renderTextos();
-  renderIconoTema();
-  enlazarEventos();
-  await actualizar();
-  setInterval(actualizar, 15 * 60 * 1000);
+// Un enlace compartido (?monto=250&modo=sell&moneda=usd) deja la calculadora lista.
+function aplicarEnlace() {
+  const enlace = leerEnlace(window.location.search);
+  if (enlace.modo) estado.modo = enlace.modo;
+  if (enlace.moneda) estado.moneda = enlace.moneda;
+  if (enlace.monto) $('amountInput').value = String(enlace.monto);
 }
 
-document.addEventListener('DOMContentLoaded', iniciar);
+async function iniciar() {
+  aplicarEnlace();
+  renderTextos();
+  renderIconoTema();
+  renderCalculadora();
+  enlazarEventos();
+  activarAparicion();
+  activarMenuActivo();
+  await actualizar();
+  setInterval(actualizar, 15 * 60 * 1000);
+  setInterval(renderEnVivo, 30 * 1000); // "actualizado hace X min" avanza solo
+}
+
+// Exporta las reglas puras para las pruebas en Node; en el navegador arranca la pagina.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { tasaPara, convertir, calcular, etiquetaResultado, leerMonto, leerEnlace, historialCsv };
+} else {
+  document.addEventListener('DOMContentLoaded', iniciar);
+}
